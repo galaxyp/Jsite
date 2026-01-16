@@ -1,0 +1,73 @@
+package com.jsite.system.service;
+
+import com.baomidou.mybatisplus.extension.service.IService;
+import com.jsite.common.core.page.TableDataInfo;
+import com.jsite.system.domain.SysDictType;
+
+import java.util.List;
+
+/**
+ * 字典 业务层
+ */
+public interface ISysDictTypeService extends IService<SysDictType> {
+
+    /**
+     * 分页查询字典类型列表
+     */
+    TableDataInfo<SysDictType> selectPageDictTypeList(SysDictType dictType);
+
+    /**
+     * 根据条件查询字典类型列表
+     */
+    List<SysDictType> selectDictTypeList(SysDictType dictType);
+
+    /**
+     * 根据所有字典类型
+     */
+    List<SysDictType> selectDictTypeAll();
+
+    /**
+     * 根据字典类型ID查询信息
+     */
+    SysDictType selectDictTypeById(Long dictId);
+
+    /**
+     * 根据字典类型查询信息
+     */
+    SysDictType selectDictTypeByType(String dictType);
+
+    /**
+     * 批量删除字典信息
+     */
+    void deleteDictTypeByIds(Long[] dictIds);
+
+    /**
+     * 加载字典缓存数据
+     */
+    void loadingDictCache();
+
+    /**
+     * 清空字典缓存数据
+     */
+    void clearDictCache();
+
+    /**
+     * 重置字典缓存数据
+     */
+    void resetDictCache();
+
+    /**
+     * 新增保存字典类型信息
+     */
+    int insertDictType(SysDictType dictType);
+
+    /**
+     * 修改保存字典类型信息
+     */
+    int updateDictType(SysDictType dictType);
+
+    /**
+     * 校验字典类型称是否唯一
+     */
+    boolean checkDictTypeUnique(SysDictType dictType);
+}

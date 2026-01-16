@@ -1,0 +1,54 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.jsite.system.mapper.SysConfigMapper">
+
+    <resultMap type="com.jsite.system.domain.SysConfig" id="SysConfigResult">
+        <id property="configId" column="config_id"/>
+        <result property="configName" column="config_name"/>
+        <result property="configKey" column="config_key"/>
+        <result property="configValue" column="config_value"/>
+        <result property="configType" column="config_type"/>
+        <result property="createBy" column="create_by"/>
+        <result property="createTime" column="create_time"/>
+        <result property="updateBy" column="update_by"/>
+        <result property="updateTime" column="update_time"/>
+        <result property="remark" column="remark"/>
+    </resultMap>
+
+    <sql id="selectConfigVo">
+        select config_id, config_name, config_key, config_value, config_type, create_by, create_time, remark
+        from sys_config
+    </sql>
+
+    <select id="selectConfigList" resultMap="SysConfigResult">
+        <include refid="selectConfigVo"/>
+        <where>
+            <if test="config.configName != null and config.configName != ''">
+                AND config_name like concat('%', #{config.configName}, '%')
+            </if>
+            <if test="config.configType != null and config.configType != ''">
+                AND config_type = #{config.configType}
+            </if>
+            <if test="config.configKey != null and config.configKey != ''">
+                AND config_key like concat('%', #{config.configKey}, '%')
+            </if>
+        </where>
+        order by create_time desc
+    </select>
+
+    <select id="selectConfigById" parameterType="Long" resultMap="SysConfigResult">
+        <include refid="selectConfigVo"/>
+        where config_id = #{configId}
+    </select>
+
+    <select id="selectConfigByKey" parameterType="String" resultMap="SysConfigResult">
+        <include refid="selectConfigVo"/>
+        where config_key = #{configKey}
+    </select>
+
+    <select id="checkConfigKeyUnique" parameterType="String" resultMap="SysConfigResult">
+        <include refid="selectConfigVo"/>
+        where config_key = #{configKey} limit 1
+    </select>
+
+</mapper>

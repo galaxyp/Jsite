@@ -1,0 +1,86 @@
+package ${packageName}.${moduleName}.controller;
+
+import cn.dev33.satoken.annotation.SaCheckPermission;
+import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
+import com.jsite.common.annotation.Log;
+import com.jsite.common.core.controller.BaseController;
+import com.jsite.common.core.domain.R;
+import com.jsite.common.core.page.TableDataInfo;
+import com.jsite.common.enums.BusinessType;
+import ${packageName}.${moduleName}.domain.${ClassName};
+import ${packageName}.${moduleName}.service.I${ClassName}Service;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
+import lombok.RequiredArgsConstructor;
+import org.springframework.web.bind.annotation.*;
+
+import java.util.List;
+
+/**
+ * ${functionName}Controller
+ *
+ * @author ${author}
+ * @date ${datetime}
+ */
+@Tag(name = "${functionName}管理")
+@RestController
+@RequestMapping("/${moduleName}/${businessName}")
+@RequiredArgsConstructor
+public class ${ClassName}Controller extends BaseController {
+
+    private final I${ClassName}Service ${className}Service;
+
+    /**
+     * 查询${functionName}列表
+     */
+    @Operation(summary = "查询${functionName}列表")
+    @SaCheckPermission("${permissionPrefix}:list")
+    @GetMapping("/list")
+    public TableDataInfo<${ClassName}> list(${ClassName} ${className}) {
+        Page<${ClassName}> page = ${className}Service.selectPage(${className}, getPage());
+        return getDataTable(page);
+    }
+
+    /**
+     * 获取${functionName}详细信息
+     */
+    @Operation(summary = "获取${functionName}详细信息")
+    @SaCheckPermission("${permissionPrefix}:query")
+    @GetMapping("/{${pkColumn.javaField}}")
+    public R<${ClassName}> getInfo(@PathVariable ${pkColumn.javaType} ${pkColumn.javaField}) {
+        return R.ok(${className}Service.selectById(${pkColumn.javaField}));
+    }
+
+    /**
+     * 新增${functionName}
+     */
+    @Operation(summary = "新增${functionName}")
+    @SaCheckPermission("${permissionPrefix}:add")
+    @Log(title = "${functionName}", businessType = BusinessType.INSERT)
+    @PostMapping
+    public R<Void> add(@RequestBody ${ClassName} ${className}) {
+        return toAjax(${className}Service.insert(${className}));
+    }
+
+    /**
+     * 修改${functionName}
+     */
+    @Operation(summary = "修改${functionName}")
+    @SaCheckPermission("${permissionPrefix}:edit")
+    @Log(title = "${functionName}", businessType = BusinessType.UPDATE)
+    @PutMapping
+    public R<Void> edit(@RequestBody ${ClassName} ${className}) {
+        return toAjax(${className}Service.update(${className}));
+    }
+
+    /**
+     * 删除${functionName}
+     */
+    @Operation(summary = "删除${functionName}")
+    @SaCheckPermission("${permissionPrefix}:remove")
+    @Log(title = "${functionName}", businessType = BusinessType.DELETE)
+    @DeleteMapping("/{${pkColumn.javaField}s}")
+    public R<Void> remove(@PathVariable ${pkColumn.javaType}[] ${pkColumn.javaField}s) {
+        return toAjax(${className}Service.deleteByIds(${pkColumn.javaField}s));
+    }
+}

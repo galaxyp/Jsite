@@ -1,0 +1,303 @@
+<template>
+  <div class="app-container">
+    <!-- 搜索表单 -->
+    <a-card :bordered="false" class="search-card">
+      <a-form layout="inline" :model="queryParams">
+#foreach($column in $columns)
+#if($column.isQuery())
+#set($dictType=$column.dictType)
+#set($AttrName=$column.capJavaField)
+#set($comment=$column.columnComment)
+#if($column.htmlType == "input")
+        <a-form-item label="${comment}">
+          <a-input v-model:value="queryParams.${column.javaField}" placeholder="请输入${comment}" allow-clear style="width: 200px" />
+        </a-form-item>
+#elseif($column.htmlType == "select" || $column.htmlType == "radio")
+        <a-form-item label="${comment}">
+          <a-select v-model:value="queryParams.${column.javaField}" placeholder="请选择${comment}" allow-clear style="width: 200px">
+            <a-select-option value="">全部</a-select-option>
+          </a-select>
+        </a-form-item>
+#elseif($column.htmlType == "datetime")
+        <a-form-item label="${comment}">
+          <a-date-picker v-model:value="queryParams.${column.javaField}" placeholder="请选择${comment}" style="width: 200px" />
+        </a-form-item>
+#end
+#end
+#end
+        <a-form-item>
+          <a-space>
+            <a-button type="primary" @click="handleQuery">
+              <template #icon><SearchOutlined /></template>
+              搜索
+            </a-button>
+            <a-button @click="resetQuery">
+              <template #icon><ReloadOutlined /></template>
+              重置
+            </a-button>
+          </a-space>
+        </a-form-item>
+      </a-form>
+    </a-card>
+
+    <!-- 操作按钮 -->
+    <a-card :bordered="false" class="table-card">
+      <div class="table-operations">
+        <a-space>
+          <a-button type="primary" @click="handleAdd">
+            <template #icon><PlusOutlined /></template>
+            新增
+          </a-button>
+          <a-button type="primary" danger :disabled="selectedRowKeys.length === 0" @click="handleDelete">
+            <template #icon><DeleteOutlined /></template>
+            删除
+          </a-button>
+        </a-space>
+      </div>
+
+      <!-- 数据表格 -->
+      <a-table
+        :columns="columns"
+        :data-source="dataList"
+        :loading="loading"
+        :pagination="pagination"
+        :row-selection="{ selectedRowKeys, onChange: onSelectChange }"
+        row-key="${pkColumn.javaField}"
+        @change="handleTableChange"
+      >
+        <template #bodyCell="{ column, record }">
+          <template v-if="column.dataIndex === 'action'">
+            <a-space>
+              <a-button type="link" size="small" @click="handleUpdate(record)">
+                <template #icon><EditOutlined /></template>
+                编辑
+              </a-button>
+              <a-popconfirm title="确定要删除吗？" @confirm="handleDelete(record)">
+                <a-button type="link" danger size="small">
+                  <template #icon><DeleteOutlined /></template>
+                  删除
+                </a-button>
+              </a-popconfirm>
+            </a-space>
+          </template>
+        </template>
+      </a-table>
+    </a-card>
+
+    <!-- 新增/修改对话框 -->
+    <a-modal
+      v-model:open="open"
+      :title="title"
+      width="600px"
+      @ok="submitForm"
+      @cancel="cancel"
+    >
+      <a-form ref="formRef" :model="form" :rules="rules" :label-col="{ span: 6 }" :wrapper-col="{ span: 16 }">
+#foreach($column in $columns)
+#if($column.isInsert() || $column.isEdit())
+#if(!$column.isPk())
+#set($field=$column.javaField)
+#set($comment=$column.columnComment)
+#if($column.htmlType == "input")
+        <a-form-item label="${comment}" name="${field}">
+          <a-input v-model:value="form.${field}" placeholder="请输入${comment}" />
+        </a-form-item>
+#elseif($column.htmlType == "textarea")
+        <a-form-item label="${comment}" name="${field}">
+          <a-textarea v-model:value="form.${field}" placeholder="请输入${comment}" :rows="4" />
+        </a-form-item>
+#elseif($column.htmlType == "select")
+        <a-form-item label="${comment}" name="${field}">
+          <a-select v-model:value="form.${field}" placeholder="请选择${comment}">
+            <a-select-option value="">请选择</a-select-option>
+          </a-select>
+        </a-form-item>
+#elseif($column.htmlType == "radio")
+        <a-form-item label="${comment}" name="${field}">
+          <a-radio-group v-model:value="form.${field}">
+            <a-radio value="0">选项1</a-radio>
+            <a-radio value="1">选项2</a-radio>
+          </a-radio-group>
+        </a-form-item>
+#elseif($column.htmlType == "datetime")
+        <a-form-item label="${comment}" name="${field}">
+          <a-date-picker v-model:value="form.${field}" show-time placeholder="请选择${comment}" style="width: 100%" />
+        </a-form-item>
+#end
+#end
+#end
+#end
+      </a-form>
+    </a-modal>
+  </div>
+</template>
+
+<script setup lang="ts">
+import { ref, reactive, onMounted, computed } from 'vue'
+import { message, Modal } from 'ant-design-vue'
+import { SearchOutlined, ReloadOutlined, PlusOutlined, EditOutlined, DeleteOutlined } from '@ant-design/icons-vue'
+import { list${BusinessName}, get${BusinessName}, add${BusinessName}, update${BusinessName}, del${BusinessName} } from '@/api/${moduleName}/${businessName}'
+
+const loading = ref(false)
+const dataList = ref<any[]>([])
+const open = ref(false)
+const title = ref('')
+const selectedRowKeys = ref<any[]>([])
+const formRef = ref()
+
+const queryParams = reactive({
+  pageNum: 1,
+  pageSize: 10,
+#foreach ($column in $columns)
+#if($column.isQuery())
+  $column.javaField: undefined,
+#end
+#end
+})
+
+const form = reactive<any>({
+#foreach ($column in $columns)
+#if($column.isInsert() || $column.isEdit())
+  $column.javaField: undefined,
+#end
+#end
+})
+
+const rules = {
+#foreach ($column in $columns)
+#if($column.isRequired() && !$column.isPk())
+  $column.javaField: [{ required: true, message: '$column.columnComment不能为空', trigger: 'blur' }],
+#end
+#end
+}
+
+const pagination = computed(() => ({
+  current: queryParams.pageNum,
+  pageSize: queryParams.pageSize,
+  total: total.value,
+  showSizeChanger: true,
+  showQuickJumper: true,
+  showTotal: (total: number) => `共 ${total} 条`
+}))
+
+const total = ref(0)
+
+const columns = [
+#foreach($column in $columns)
+#if($column.isList())
+  { title: '${column.columnComment}', dataIndex: '${column.javaField}', width: 150 },
+#end
+#end
+  { title: '操作', dataIndex: 'action', width: 180, fixed: 'right' }
+]
+
+async function getList() {
+  loading.value = true
+  try {
+    const res = await list${BusinessName}(queryParams)
+    dataList.value = res.rows || []
+    total.value = res.total || 0
+  } finally {
+    loading.value = false
+  }
+}
+
+function handleQuery() {
+  queryParams.pageNum = 1
+  getList()
+}
+
+function resetQuery() {
+#foreach ($column in $columns)
+#if($column.isQuery())
+  queryParams.$column.javaField = undefined
+#end
+#end
+  handleQuery()
+}
+
+function handleTableChange(pag: any) {
+  queryParams.pageNum = pag.current
+  queryParams.pageSize = pag.pageSize
+  getList()
+}
+
+function onSelectChange(keys: any[]) {
+  selectedRowKeys.value = keys
+}
+
+function resetForm() {
+#foreach ($column in $columns)
+#if($column.isInsert() || $column.isEdit())
+  form.$column.javaField = undefined
+#end
+#end
+}
+
+function handleAdd() {
+  resetForm()
+  open.value = true
+  title.value = '新增${functionName}'
+}
+
+async function handleUpdate(row: any) {
+  resetForm()
+  const res = await get${BusinessName}(row.${pkColumn.javaField})
+  Object.assign(form, res.data)
+  open.value = true
+  title.value = '修改${functionName}'
+}
+
+function handleDelete(row?: any) {
+  const ids = row ? [row.${pkColumn.javaField}] : selectedRowKeys.value
+  if (ids.length === 0) {
+    message.warning('请选择要删除的记录')
+    return
+  }
+  Modal.confirm({
+    title: '确认删除',
+    content: `确定要删除选中的 ${ids.length} 条记录吗？`,
+    async onOk() {
+      await del${BusinessName}(ids.join(','))
+      message.success('删除成功')
+      selectedRowKeys.value = []
+      getList()
+    }
+  })
+}
+
+async function submitForm() {
+  try {
+    await formRef.value.validate()
+    if (form.${pkColumn.javaField}) {
+      await update${BusinessName}(form)
+      message.success('修改成功')
+    } else {
+      await add${BusinessName}(form)
+      message.success('新增成功')
+    }
+    open.value = false
+    getList()
+  } catch (error) {
+    // validation failed
+  }
+}
+
+function cancel() {
+  open.value = false
+  resetForm()
+}
+
+onMounted(() => {
+  getList()
+})
+</script>
+
+<style scoped>
+.search-card {
+  margin-bottom: 16px;
+}
+.table-operations {
+  margin-bottom: 16px;
+}
+</style>

@@ -1,0 +1,146 @@
+package ${packageName}.${moduleName}.service.impl;
+
+import cn.hutool.core.util.ObjectUtil;
+import cn.hutool.core.util.StrUtil;
+import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
+import ${packageName}.${moduleName}.domain.${ClassName};
+import ${packageName}.${moduleName}.mapper.${ClassName}Mapper;
+import ${packageName}.${moduleName}.service.I${ClassName}Service;
+import lombok.RequiredArgsConstructor;
+import org.springframework.stereotype.Service;
+
+import java.util.Arrays;
+import java.util.List;
+
+/**
+ * ${functionName}Service业务层处理
+ *
+ * @author ${author}
+ * @date ${datetime}
+ */
+@Service
+@RequiredArgsConstructor
+public class ${ClassName}ServiceImpl implements I${ClassName}Service {
+
+    private final ${ClassName}Mapper ${className}Mapper;
+
+    /**
+     * 查询${functionName}
+     *
+     * @param ${pkColumn.javaField} ${functionName}主键
+     * @return ${functionName}
+     */
+    @Override
+    public ${ClassName} selectById(${pkColumn.javaType} ${pkColumn.javaField}) {
+        return ${className}Mapper.selectById(${pkColumn.javaField});
+    }
+
+    /**
+     * 查询${functionName}分页列表
+     *
+     * @param ${className} ${functionName}
+     * @param page 分页参数
+     * @return ${functionName}分页列表
+     */
+    @Override
+    public Page<${ClassName}> selectPage(${ClassName} ${className}, Page<${ClassName}> page) {
+        LambdaQueryWrapper<${ClassName}> wrapper = buildQueryWrapper(${className});
+        return ${className}Mapper.selectPage(page, wrapper);
+    }
+
+    /**
+     * 查询${functionName}列表
+     *
+     * @param ${className} ${functionName}
+     * @return ${functionName}列表
+     */
+    @Override
+    public List<${ClassName}> selectList(${ClassName} ${className}) {
+        LambdaQueryWrapper<${ClassName}> wrapper = buildQueryWrapper(${className});
+        return ${className}Mapper.selectList(wrapper);
+    }
+
+    /**
+     * 构建查询条件
+     */
+    private LambdaQueryWrapper<${ClassName}> buildQueryWrapper(${ClassName} ${className}) {
+        LambdaQueryWrapper<${ClassName}> wrapper = new LambdaQueryWrapper<>();
+#foreach($column in $columns)
+#if($column.isQuery())
+#set($queryType=$column.queryType)
+#set($javaField=$column.javaField)
+#set($javaType=$column.javaType)
+#set($AttrName=$column.capJavaField)
+#if($queryType == "EQ")
+#if($javaType == "String")
+        wrapper.eq(StrUtil.isNotBlank(${className}.get${AttrName}()), ${ClassName}::get${AttrName}, ${className}.get${AttrName}());
+#else
+        wrapper.eq(ObjectUtil.isNotNull(${className}.get${AttrName}()), ${ClassName}::get${AttrName}, ${className}.get${AttrName}());
+#end
+#elseif($queryType == "NE")
+#if($javaType == "String")
+        wrapper.ne(StrUtil.isNotBlank(${className}.get${AttrName}()), ${ClassName}::get${AttrName}, ${className}.get${AttrName}());
+#else
+        wrapper.ne(ObjectUtil.isNotNull(${className}.get${AttrName}()), ${ClassName}::get${AttrName}, ${className}.get${AttrName}());
+#end
+#elseif($queryType == "GT")
+        wrapper.gt(ObjectUtil.isNotNull(${className}.get${AttrName}()), ${ClassName}::get${AttrName}, ${className}.get${AttrName}());
+#elseif($queryType == "GTE")
+        wrapper.ge(ObjectUtil.isNotNull(${className}.get${AttrName}()), ${ClassName}::get${AttrName}, ${className}.get${AttrName}());
+#elseif($queryType == "LT")
+        wrapper.lt(ObjectUtil.isNotNull(${className}.get${AttrName}()), ${ClassName}::get${AttrName}, ${className}.get${AttrName}());
+#elseif($queryType == "LTE")
+        wrapper.le(ObjectUtil.isNotNull(${className}.get${AttrName}()), ${ClassName}::get${AttrName}, ${className}.get${AttrName}());
+#elseif($queryType == "LIKE")
+        wrapper.like(StrUtil.isNotBlank(${className}.get${AttrName}()), ${ClassName}::get${AttrName}, ${className}.get${AttrName}());
+#end
+#end
+#end
+        return wrapper;
+    }
+
+    /**
+     * 新增${functionName}
+     *
+     * @param ${className} ${functionName}
+     * @return 结果
+     */
+    @Override
+    public int insert(${ClassName} ${className}) {
+        return ${className}Mapper.insert(${className});
+    }
+
+    /**
+     * 修改${functionName}
+     *
+     * @param ${className} ${functionName}
+     * @return 结果
+     */
+    @Override
+    public int update(${ClassName} ${className}) {
+        return ${className}Mapper.updateById(${className});
+    }
+
+    /**
+     * 批量删除${functionName}
+     *
+     * @param ${pkColumn.javaField}s 需要删除的${functionName}主键
+     * @return 结果
+     */
+    @Override
+    public int deleteByIds(${pkColumn.javaType}[] ${pkColumn.javaField}s) {
+        return ${className}Mapper.deleteBatchIds(Arrays.asList(${pkColumn.javaField}s));
+    }
+
+    /**
+     * 删除${functionName}信息
+     *
+     * @param ${pkColumn.javaField} ${functionName}主键
+     * @return 结果
+     */
+    @Override
+    public int deleteById(${pkColumn.javaType} ${pkColumn.javaField}) {
+        return ${className}Mapper.deleteById(${pkColumn.javaField});
+    }
+}

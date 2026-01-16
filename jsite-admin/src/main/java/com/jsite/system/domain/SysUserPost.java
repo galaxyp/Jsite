@@ -1,0 +1,22 @@
+package com.jsite.system.domain;
+
+import com.baomidou.mybatisplus.annotation.TableName;
+import lombok.Data;
+
+/**
+ * 用户与岗位关联表 sys_user_post
+ */
+@Data
+@TableName("sys_user_post")
+public class SysUserPost {
+
+    /**
+     * 用户ID
+     */
+    private Long userId;
+
+    /**
+     * 岗位ID
+     */
+    private Long postId;
+}
