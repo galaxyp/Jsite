@@ -3,7 +3,7 @@
 <mapper namespace="com.jsite.system.mapper.SysDictDataMapper">
 
     <resultMap type="com.jsite.system.domain.SysDictData" id="SysDictDataResult">
-        <id property="dictCode" column="dict_code"/>
+        <id property="dictCode" column="id"/>
         <result property="dictSort" column="dict_sort"/>
         <result property="dictLabel" column="dict_label"/>
         <result property="dictValue" column="dict_value"/>
@@ -20,7 +20,7 @@
     </resultMap>
 
     <sql id="selectDictDataVo">
-        select dict_code, dict_sort, dict_label, dict_value, dict_type, css_class, list_class, is_default, status, create_by, create_time, remark
+        select id, dict_sort, dict_label, dict_value, dict_type, css_class, list_class, is_default, status, create_by, create_time, remark
         from sys_dict_data
     </sql>
 
@@ -52,7 +52,7 @@
 
     <select id="selectDictDataById" parameterType="Long" resultMap="SysDictDataResult">
         <include refid="selectDictDataVo"/>
-        where dict_code = #{dictCode}
+        where id = #{dictCode}
     </select>
 
     <select id="countDictDataByType" resultType="Integer">

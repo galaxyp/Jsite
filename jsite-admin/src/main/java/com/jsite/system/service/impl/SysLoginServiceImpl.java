@@ -108,8 +108,8 @@ public class SysLoginServiceImpl implements ISysLoginService {
 
         // 创建新用户
         SysUser newUser = new SysUser();
+        newUser.setLoginName(username);
         newUser.setUserName(username);
-        newUser.setNickName(username);
         newUser.setPassword(SecurityUtils.encryptPassword(password));
         newUser.setStatus("0");
 

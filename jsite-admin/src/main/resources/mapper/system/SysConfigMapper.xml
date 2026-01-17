@@ -3,7 +3,7 @@
 <mapper namespace="com.jsite.system.mapper.SysConfigMapper">
 
     <resultMap type="com.jsite.system.domain.SysConfig" id="SysConfigResult">
-        <id property="configId" column="config_id"/>
+        <id property="configId" column="id"/>
         <result property="configName" column="config_name"/>
         <result property="configKey" column="config_key"/>
         <result property="configValue" column="config_value"/>
@@ -16,7 +16,7 @@
     </resultMap>
 
     <sql id="selectConfigVo">
-        select config_id, config_name, config_key, config_value, config_type, create_by, create_time, remark
+        select id, config_name, config_key, config_value, config_type, create_by, create_time, remark
         from sys_config
     </sql>
 
@@ -38,7 +38,7 @@
 
     <select id="selectConfigById" parameterType="Long" resultMap="SysConfigResult">
         <include refid="selectConfigVo"/>
-        where config_id = #{configId}
+        where id = #{configId}
     </select>
 
     <select id="selectConfigByKey" parameterType="String" resultMap="SysConfigResult">

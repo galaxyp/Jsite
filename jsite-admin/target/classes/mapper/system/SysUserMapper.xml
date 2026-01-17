@@ -3,19 +3,20 @@
 <mapper namespace="com.jsite.system.mapper.SysUserMapper">
 
     <resultMap type="com.jsite.system.domain.SysUser" id="SysUserResult">
-        <id property="userId" column="user_id"/>
+        <id property="userId" column="id"/>
         <result property="deptId" column="dept_id"/>
+        <result property="loginName" column="login_name"/>
         <result property="userName" column="user_name"/>
-        <result property="nickName" column="nick_name"/>
         <result property="email" column="email"/>
-        <result property="phonenumber" column="phonenumber"/>
+        <result property="phonenumber" column="phone"/>
         <result property="sex" column="sex"/>
         <result property="avatar" column="avatar"/>
         <result property="password" column="password"/>
+        <result property="salt" column="salt"/>
         <result property="status" column="status"/>
         <result property="delFlag" column="del_flag"/>
         <result property="loginIp" column="login_ip"/>
-        <result property="loginDate" column="login_date"/>
+        <result property="loginDate" column="login_time"/>
         <result property="createBy" column="create_by"/>
         <result property="createTime" column="create_time"/>
         <result property="updateBy" column="update_by"/>
@@ -34,43 +35,46 @@
     </resultMap>
 
     <sql id="selectUserVo">
-        select u.user_id, u.dept_id, u.user_name, u.nick_name, u.email, u.avatar, u.phonenumber, u.password, u.sex, u.status, u.del_flag, u.login_ip, u.login_date, u.create_by, u.create_time, u.remark,
-               d.dept_id, d.parent_id, d.ancestors, d.dept_name, d.order_num, d.leader, d.status as dept_status
+        select u.id, u.dept_id, u.login_name, u.user_name, u.email, u.avatar, u.phone, u.password, u.salt, u.sex, u.status, u.del_flag, u.login_ip, u.login_time, u.create_by, u.create_time, u.remark,
+               d.id as dept_id, d.parent_id, d.ancestors, d.dept_name, d.order_num, d.leader, d.status as dept_status
         from sys_user u
-        left join sys_dept d on u.dept_id = d.dept_id
+        left join sys_dept d on u.dept_id = d.id
     </sql>
 
     <select id="selectUserList" resultMap="SysUserResult">
-        select u.user_id, u.dept_id, u.nick_name, u.user_name, u.email, u.avatar, u.phonenumber, u.sex, u.status, u.del_flag, u.login_ip, u.login_date, u.create_by, u.create_time, u.remark, d.dept_name, d.leader
+        select u.id, u.dept_id, u.login_name, u.user_name, u.email, u.avatar, u.phone, u.sex, u.status, u.del_flag, u.login_ip, u.login_time, u.create_by, u.create_time, u.remark, d.dept_name, d.leader
         from sys_user u
-        left join sys_dept d on u.dept_id = d.dept_id
+        left join sys_dept d on u.dept_id = d.id
         where u.del_flag = '0'
         <if test="user.userId != null and user.userId != 0">
-            AND u.user_id = #{user.userId}
+            AND u.id = #{user.userId}
         </if>
         <if test="user.userName != null and user.userName != ''">
             AND u.user_name like concat('%', #{user.userName}, '%')
+        </if>
+        <if test="user.loginName != null and user.loginName != ''">
+            AND u.login_name like concat('%', #{user.loginName}, '%')
         </if>
         <if test="user.status != null and user.status != ''">
             AND u.status = #{user.status}
         </if>
         <if test="user.phonenumber != null and user.phonenumber != ''">
-            AND u.phonenumber like concat('%', #{user.phonenumber}, '%')
+            AND u.phone like concat('%', #{user.phonenumber}, '%')
         </if>
         <if test="user.deptId != null and user.deptId != 0">
-            AND (u.dept_id = #{user.deptId} OR u.dept_id IN ( SELECT t.dept_id FROM sys_dept t WHERE find_in_set(#{user.deptId}, ancestors) ))
+            AND (u.dept_id = #{user.deptId} OR u.dept_id IN ( SELECT t.id FROM sys_dept t WHERE find_in_set(#{user.deptId}, ancestors) ))
         </if>
         order by u.create_time desc
     </select>
 
     <select id="selectUserByUserName" parameterType="String" resultMap="SysUserResult">
         <include refid="selectUserVo"/>
-        where u.user_name = #{userName} and u.del_flag = '0'
+        where u.login_name = #{userName} and u.del_flag = '0'
     </select>
 
     <select id="selectUserById" parameterType="Long" resultMap="SysUserResult">
         <include refid="selectUserVo"/>
-        where u.user_id = #{userId}
+        where u.id = #{userId}
     </select>
 
     <select id="countUserByDeptId" resultType="Integer">
@@ -78,15 +82,15 @@
     </select>
 
     <select id="checkUserNameUnique" parameterType="String" resultMap="SysUserResult">
-        select user_id, user_name from sys_user where user_name = #{userName} and del_flag = '0' limit 1
+        select id, login_name from sys_user where login_name = #{userName} and del_flag = '0' limit 1
     </select>
 
     <select id="checkPhoneUnique" parameterType="String" resultMap="SysUserResult">
-        select user_id, phonenumber from sys_user where phonenumber = #{phonenumber} and del_flag = '0' limit 1
+        select id, phone from sys_user where phone = #{phonenumber} and del_flag = '0' limit 1
     </select>
 
     <select id="checkEmailUnique" parameterType="String" resultMap="SysUserResult">
-        select user_id, email from sys_user where email = #{email} and del_flag = '0' limit 1
+        select id, email from sys_user where email = #{email} and del_flag = '0' limit 1
     </select>
 
 </mapper>

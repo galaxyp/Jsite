@@ -31,13 +31,14 @@ export const constantRoutes: RouteRecordRaw[] = [
     meta: { title: '401', hidden: true },
   },
   {
-    path: '',
-    name: 'Layout',
+    path: '/',
+    name: 'Index',
     component: () => import('@/layouts/default/index.vue'),
     redirect: '/dashboard',
+    meta: { title: '首页', icon: 'dashboard' },
     children: [
       {
-        path: '/dashboard',
+        path: 'dashboard',
         name: 'Dashboard',
         component: () => import('@/views/dashboard/index.vue'),
         meta: { title: '首页', icon: 'dashboard', affix: true },

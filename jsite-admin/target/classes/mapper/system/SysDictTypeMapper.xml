@@ -3,7 +3,7 @@
 <mapper namespace="com.jsite.system.mapper.SysDictTypeMapper">
 
     <resultMap type="com.jsite.system.domain.SysDictType" id="SysDictTypeResult">
-        <id property="dictId" column="dict_id"/>
+        <id property="dictId" column="id"/>
         <result property="dictName" column="dict_name"/>
         <result property="dictType" column="dict_type"/>
         <result property="status" column="status"/>
@@ -15,7 +15,7 @@
     </resultMap>
 
     <sql id="selectDictTypeVo">
-        select dict_id, dict_name, dict_type, status, create_by, create_time, remark
+        select id, dict_name, dict_type, status, create_by, create_time, remark
         from sys_dict_type
     </sql>
 
@@ -41,7 +41,7 @@
 
     <select id="selectDictTypeById" parameterType="Long" resultMap="SysDictTypeResult">
         <include refid="selectDictTypeVo"/>
-        where dict_id = #{dictId}
+        where id = #{dictId}
     </select>
 
     <select id="selectDictTypeByType" parameterType="String" resultMap="SysDictTypeResult">

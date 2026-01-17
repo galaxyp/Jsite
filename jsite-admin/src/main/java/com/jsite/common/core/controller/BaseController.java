@@ -6,6 +6,7 @@ import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.jsite.common.core.domain.R;
 import com.jsite.common.core.page.PageQuery;
 import com.jsite.common.core.page.TableDataInfo;
+import com.jsite.common.utils.SecurityUtils;
 import com.jsite.common.utils.ServletUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -20,6 +21,20 @@ import java.util.List;
 public class BaseController {
 
     protected final Logger logger = LoggerFactory.getLogger(this.getClass());
+
+    /**
+     * 获取当前登录用户名
+     */
+    protected String getUsername() {
+        return SecurityUtils.getUsername();
+    }
+
+    /**
+     * 获取当前登录用户ID
+     */
+    protected Long getUserId() {
+        return SecurityUtils.getUserId();
+    }
 
     /**
      * 获取分页对象

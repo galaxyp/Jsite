@@ -50,10 +50,11 @@ public class GenUtils {
         } else if (arraysContains(GenConstants.COLUMNTYPE_NUMBER, dataType)) {
             column.setHtmlType("input");
             // 如果是浮点型
-            String[] str = StrUtil.split(StrUtil.subBetween(column.getColumnType(), "(", ")"), ",");
-            if (str != null && str.length == 2 && Integer.parseInt(str[1]) > 0) {
+            String subStr = StrUtil.subBetween(column.getColumnType(), "(", ")");
+            String[] str = subStr != null ? subStr.split(",") : null;
+            if (str != null && str.length == 2 && Integer.parseInt(str[1].trim()) > 0) {
                 column.setJavaType("BigDecimal");
-            } else if (str != null && str.length == 1 && Integer.parseInt(str[0]) <= 10) {
+            } else if (str != null && str.length == 1 && Integer.parseInt(str[0].trim()) <= 10) {
                 column.setJavaType("Integer");
             } else {
                 column.setJavaType("Long");

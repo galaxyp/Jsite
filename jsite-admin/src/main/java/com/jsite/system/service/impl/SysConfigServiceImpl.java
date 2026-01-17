@@ -3,6 +3,7 @@ package com.jsite.system.service.impl;
 import cn.hutool.core.convert.Convert;
 import cn.hutool.core.util.ObjectUtil;
 import cn.hutool.core.util.StrUtil;
+import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.jsite.common.constant.CacheConstants;
@@ -14,6 +15,7 @@ import com.jsite.system.mapper.SysConfigMapper;
 import com.jsite.system.service.ISysConfigService;
 import jakarta.annotation.PostConstruct;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Service;
 
@@ -23,6 +25,7 @@ import java.util.List;
 /**
  * 参数配置 服务层实现
  */
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class SysConfigServiceImpl extends ServiceImpl<SysConfigMapper, SysConfig> implements ISysConfigService {
@@ -35,13 +38,17 @@ public class SysConfigServiceImpl extends ServiceImpl<SysConfigMapper, SysConfig
      */
     @PostConstruct
     public void init() {
-        loadingConfigCache();
+        try {
+            loadingConfigCache();
+        } catch (Exception e) {
+            log.warn("初始化配置缓存失败，Redis可能未启动: {}", e.getMessage());
+        }
     }
 
     @Override
     public TableDataInfo<SysConfig> selectPageConfigList(SysConfig config) {
         Page<SysConfig> page = new Page<>(PageQuery.getPageNum(), PageQuery.getPageSize());
-        Page<SysConfig> result = configMapper.selectConfigList(page, config);
+        IPage<SysConfig> result = configMapper.selectConfigList(page, config);
         return TableDataInfo.build(result);
     }
 
@@ -66,11 +73,8 @@ public class SysConfigServiceImpl extends ServiceImpl<SysConfigMapper, SysConfig
 
     @Override
     public boolean selectCaptchaEnabled() {
-        String captchaEnabled = selectConfigByKey("sys.account.captchaEnabled");
-        if (StrUtil.isEmpty(captchaEnabled)) {
-            return true;
-        }
-        return Convert.toBool(captchaEnabled);
+        // 暂时关闭验证码
+        return false;
     }
 
     @Override

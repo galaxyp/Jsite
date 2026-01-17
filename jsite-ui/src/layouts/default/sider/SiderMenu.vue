@@ -8,15 +8,15 @@
     @click="handleMenuClick"
   >
     <template v-for="menu in menuList" :key="menu.path">
-      <template v-if="!menu.meta?.hidden">
+      <template v-if="!menu.hidden && !menu.meta?.hidden">
         <!-- 有子菜单 -->
         <a-sub-menu v-if="menu.children && menu.children.length > 0" :key="menu.path">
           <template #icon>
             <component :is="getIcon(menu.meta?.icon)" />
           </template>
           <template #title>{{ menu.meta?.title }}</template>
-          <template v-for="child in menu.children" :key="child.path">
-            <a-menu-item v-if="!child.meta?.hidden" :key="child.path">
+          <template v-for="child in menu.children" :key="getFullPath(menu.path, child.path)">
+            <a-menu-item v-if="!child.hidden && !child.meta?.hidden" :key="getFullPath(menu.path, child.path)">
               <template #icon>
                 <component :is="getIcon(child.meta?.icon)" />
               </template>
@@ -65,6 +65,14 @@ const getIcon = (icon?: string) => {
   if (!icon) return null
   const iconName = icon.charAt(0).toUpperCase() + icon.slice(1) + 'Outlined'
   return (Icons as any)[iconName] || (Icons as any)['AppstoreOutlined']
+}
+
+// 获取完整路径
+const getFullPath = (parentPath: string, childPath: string) => {
+  if (childPath.startsWith('/')) {
+    return childPath
+  }
+  return `${parentPath}/${childPath}`
 }
 
 // 监听路由变化

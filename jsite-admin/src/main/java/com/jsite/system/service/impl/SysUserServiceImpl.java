@@ -3,6 +3,7 @@ package com.jsite.system.service.impl;
 import cn.hutool.core.util.ObjectUtil;
 import cn.hutool.core.util.StrUtil;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.jsite.common.constant.Constants;
@@ -38,7 +39,7 @@ public class SysUserServiceImpl extends ServiceImpl<SysUserMapper, SysUser> impl
     @Override
     public TableDataInfo<SysUser> selectPageUserList(SysUser user) {
         Page<SysUser> page = new Page<>(PageQuery.getPageNum(), PageQuery.getPageSize());
-        Page<SysUser> result = userMapper.selectUserList(page, user);
+        IPage<SysUser> result = userMapper.selectUserList(page, user);
         return TableDataInfo.build(result);
     }
 

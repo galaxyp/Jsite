@@ -196,4 +196,19 @@ public class Constants {
      * 所有权限标识
      */
     public static final String ALL_PERMISSION = "*:*:*";
+
+    /**
+     * 登录用户 Redis Key
+     */
+    public static final String LOGIN_USER_KEY = "login_user_key:";
+
+    /**
+     * 验证码 Redis Key
+     */
+    public static final String CAPTCHA_CODE_KEY = "captcha_code:";
+
+    /**
+     * 默认密码
+     */
+    public static final String DEFAULT_PASSWORD = "123456";
 }

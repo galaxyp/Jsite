@@ -1,6 +1,7 @@
 package com.jsite.system.service.impl;
 
 import cn.hutool.core.util.ObjectUtil;
+import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.jsite.common.constant.CacheConstants;
@@ -14,6 +15,7 @@ import com.jsite.system.mapper.SysDictTypeMapper;
 import com.jsite.system.service.ISysDictTypeService;
 import jakarta.annotation.PostConstruct;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -26,6 +28,7 @@ import java.util.stream.Collectors;
 /**
  * 字典 业务层处理
  */
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class SysDictTypeServiceImpl extends ServiceImpl<SysDictTypeMapper, SysDictType> implements ISysDictTypeService {
@@ -39,13 +42,17 @@ public class SysDictTypeServiceImpl extends ServiceImpl<SysDictTypeMapper, SysDi
      */
     @PostConstruct
     public void init() {
-        loadingDictCache();
+        try {
+            loadingDictCache();
+        } catch (Exception e) {
+            log.warn("初始化字典缓存失败，Redis可能未启动: {}", e.getMessage());
+        }
     }
 
     @Override
     public TableDataInfo<SysDictType> selectPageDictTypeList(SysDictType dictType) {
         Page<SysDictType> page = new Page<>(PageQuery.getPageNum(), PageQuery.getPageSize());
-        Page<SysDictType> result = dictTypeMapper.selectDictTypeList(page, dictType);
+        IPage<SysDictType> result = dictTypeMapper.selectDictTypeList(page, dictType);
         return TableDataInfo.build(result);
     }
 

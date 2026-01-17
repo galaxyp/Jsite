@@ -26,7 +26,7 @@ public class JsiteApplication {
         System.out.println("|__/                ");
         System.out.println("===========================================");
         System.out.println("  JSite 快速开发平台启动成功!");
-        System.out.println("  接口文档: http://localhost:8080/doc.html");
+        System.out.println("  接口文档: http://localhost:8081/doc.html");
         System.out.println("===========================================");
     }
 }

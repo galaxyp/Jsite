@@ -1,8 +1,10 @@
 package com.jsite.common.core.page;
 
+import cn.hutool.core.convert.Convert;
 import cn.hutool.core.util.StrUtil;
 import com.baomidou.mybatisplus.core.metadata.OrderItem;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
+import com.jsite.common.utils.ServletUtils;
 import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.Data;
 
@@ -20,6 +22,20 @@ public class PageQuery implements Serializable {
 
     @Serial
     private static final long serialVersionUID = 1L;
+
+    /**
+     * 从请求中获取页码
+     */
+    public static int getPageNum() {
+        return Convert.toInt(ServletUtils.getParameter("pageNum"), 1);
+    }
+
+    /**
+     * 从请求中获取每页数量
+     */
+    public static int getPageSize() {
+        return Convert.toInt(ServletUtils.getParameter("pageSize"), 10);
+    }
 
     /**
      * 页码

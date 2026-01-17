@@ -26,12 +26,26 @@ import java.util.Set;
  */
 @Tag(name = "登录验证")
 @RestController
+@RequestMapping("/auth")
 @RequiredArgsConstructor
 public class SysLoginController {
 
     private final ISysLoginService loginService;
     private final ISysMenuService menuService;
     private final ISysRoleService roleService;
+
+    /**
+     * 获取验证码
+     */
+    @SaIgnore
+    @Operation(summary = "获取验证码")
+    @GetMapping("/captcha")
+    public R<Map<String, Object>> getCaptcha() {
+        Map<String, Object> result = new HashMap<>();
+        // 暂时关闭验证码
+        result.put("captchaEnabled", false);
+        return R.ok(result);
+    }
 
     /**
      * 登录方法
@@ -57,7 +71,13 @@ public class SysLoginController {
         // 获取角色权限
         Set<String> roles = roleService.selectRolePermissionByUserId(user.getUserId());
         // 获取菜单权限
-        Set<String> permissions = menuService.selectMenuPermsByUserId(user.getUserId());
+        Set<String> permissions;
+        if (SysUser.isAdmin(user.getUserId())) {
+            // 管理员拥有所有权限
+            permissions = Set.of("*:*:*");
+        } else {
+            permissions = menuService.selectMenuPermsByUserId(user.getUserId());
+        }
 
         Map<String, Object> result = new HashMap<>();
         result.put("user", user);
@@ -84,7 +104,7 @@ public class SysLoginController {
     @PostMapping("/logout")
     public R<Void> logout() {
         loginService.logout();
-        return R.ok("退出成功");
+        return R.ok("退出成功", null);
     }
 
     /**
@@ -95,6 +115,6 @@ public class SysLoginController {
     @PostMapping("/register")
     public R<Void> register(@Validated @RequestBody LoginBody loginBody) {
         loginService.register(loginBody.getUsername(), loginBody.getPassword());
-        return R.ok("注册成功");
+        return R.ok("注册成功", null);
     }
 }

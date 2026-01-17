@@ -232,7 +232,7 @@ public class VelocityUtils {
      * 获取上级菜单ID字段
      */
     public static String getParentMenuId(JSONObject paramsObj) {
-        if (CollUtil.isNotEmpty(paramsObj) && paramsObj.containsKey(GenConstants.PARENT_MENU_ID)
+        if (paramsObj != null && !paramsObj.isEmpty() && paramsObj.containsKey(GenConstants.PARENT_MENU_ID)
                 && StrUtil.isNotEmpty(paramsObj.getStr(GenConstants.PARENT_MENU_ID))) {
             return paramsObj.getStr(GenConstants.PARENT_MENU_ID);
         }

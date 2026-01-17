@@ -1,6 +1,7 @@
 package com.jsite.system.service.impl;
 
 import cn.hutool.core.util.ObjectUtil;
+import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.jsite.common.core.page.PageQuery;
@@ -32,7 +33,7 @@ public class SysRoleServiceImpl extends ServiceImpl<SysRoleMapper, SysRole> impl
     @Override
     public TableDataInfo<SysRole> selectPageRoleList(SysRole role) {
         Page<SysRole> page = new Page<>(PageQuery.getPageNum(), PageQuery.getPageSize());
-        Page<SysRole> result = roleMapper.selectRoleList(page, role);
+        IPage<SysRole> result = roleMapper.selectRoleList(page, role);
         return TableDataInfo.build(result);
     }
 

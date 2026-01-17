@@ -4,7 +4,7 @@ import cn.dev33.satoken.stp.StpUtil;
 import cn.hutool.crypto.SecureUtil;
 import com.jsite.common.constant.Constants;
 import com.jsite.common.exception.ServiceException;
-import com.jsite.modules.system.entity.SysUser;
+import com.jsite.system.domain.SysUser;
 
 /**
  * 安全工具类

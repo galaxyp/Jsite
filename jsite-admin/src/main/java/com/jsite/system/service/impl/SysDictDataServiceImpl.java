@@ -1,5 +1,6 @@
 package com.jsite.system.service.impl;
 
+import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.jsite.common.constant.CacheConstants;
@@ -28,7 +29,7 @@ public class SysDictDataServiceImpl extends ServiceImpl<SysDictDataMapper, SysDi
     @Override
     public TableDataInfo<SysDictData> selectPageDictDataList(SysDictData dictData) {
         Page<SysDictData> page = new Page<>(PageQuery.getPageNum(), PageQuery.getPageSize());
-        Page<SysDictData> result = dictDataMapper.selectDictDataList(page, dictData);
+        IPage<SysDictData> result = dictDataMapper.selectDictDataList(page, dictData);
         return TableDataInfo.build(result);
     }
 

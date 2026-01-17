@@ -50,7 +50,7 @@ export const useUserStore = defineStore('user', {
         this.roles = ['ROLE_DEFAULT']
       }
 
-      this.id = user.id
+      this.id = user.userId
       this.name = user.userName
       this.avatar = user.avatar || ''
 

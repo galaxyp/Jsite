@@ -1,0 +1,41 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(\"C:\\\\Program Files\\\\MySQL\\\\MySQL Server 8.0\\\\bin\\\\mysql.exe\" -h localhost -P 3307 -u root -pCcedabc@123 -e \"SHOW DATABASES; USE jsite; SHOW TABLES;\")",
+      "Bash(\"C:\\\\Program Files\\\\MySQL\\\\MySQL Server 8.0\\\\bin\\\\mysql.exe\" -h localhost -P 3307 -u root -pCcedabc@123 -e \"CREATE DATABASE jsite DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;\")",
+      "Bash(\"C:\\\\Program Files\\\\MySQL\\\\MySQL Server 8.0\\\\bin\\\\mysql.exe\" -h localhost -P 3307 -u root -pCcedabc@123 jsite -e \"SHOW TABLES;\")",
+      "Bash(\"C:\\\\Program Files\\\\MySQL\\\\MySQL Server 8.0\\\\bin\\\\mysql.exe\" -h localhost -P 3307 -u root -pCcedabc@123 jsite -e \"SELECT user_id, user_name, nick_name, status FROM sys_user; SELECT role_id, role_name, role_key FROM sys_role;\")",
+      "Bash(\"C:\\\\Program Files\\\\MySQL\\\\MySQL Server 8.0\\\\bin\\\\mysql.exe\":*)",
+      "Bash(mvn compile:*)",
+      "Bash(\"C:\\\\Program Files\\\\MySQL\\\\MySQL Server 8.0\\\\bin\\\\mysql.exe\" -h localhost -P 3307 -u root -pCcedabc@123 jsite -e \"SELECT id, login_name, user_name, status FROM sys_user LIMIT 5;\")",
+      "Bash(mvn spring-boot:run:*)",
+      "Bash(\"C:\\\\Program Files\\\\MySQL\\\\MySQL Server 8.0\\\\bin\\\\mysql.exe\" -h localhost -P 3307 -u root -pCcedabc@123 jsite -e \"DESCRIBE sys_config;\")",
+      "Bash(\"C:\\\\Program Files\\\\MySQL\\\\MySQL Server 8.0\\\\bin\\\\mysql.exe\" -h localhost -P 3307 -u root -pCcedabc@123 jsite -e \"SELECT TABLE_NAME, COLUMN_NAME FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA=''jsite'' AND COLUMN_KEY=''PRI'' ORDER BY TABLE_NAME;\")",
+      "Bash(\"C:\\\\Program Files\\\\MySQL\\\\MySQL Server 8.0\\\\bin\\\\mysql.exe\" -h localhost -P 3307 -u root -pCcedabc@123 jsite -e \"DESCRIBE sys_user; DESCRIBE sys_dept; DESCRIBE sys_role;\")",
+      "Bash(mvn clean:*)",
+      "Bash(where:*)",
+      "Bash(netstat:*)",
+      "Bash(findstr:*)",
+      "Bash(taskkill /F /PID 6132)",
+      "Bash(taskkill //F //PID 6132)",
+      "Bash(\"C:\\\\Program Files\\\\MySQL\\\\MySQL Server 8.0\\\\bin\\\\mysql.exe\" -h localhost -P 3307 -u root -pCcedabc@123 -e \"DESCRIBE sys_dict_type\" jsite)",
+      "Bash(\"C:\\\\Program Files\\\\MySQL\\\\MySQL Server 8.0\\\\bin\\\\mysql.exe\" -h localhost -P 3307 -u root -pCcedabc@123 -e \"SHOW TABLES; DESCRIBE sys_user; DESCRIBE sys_role; DESCRIBE sys_menu; DESCRIBE sys_dict_data;\" jsite)",
+      "Bash(npm install:*)",
+      "Bash(npm run dev:*)",
+      "Bash(timeout /t 5 /nobreak)",
+      "Bash(taskkill:*)",
+      "Bash(curl:*)",
+      "Bash(./redis-server.exe:*)",
+      "Bash(E:/Redis-8.4.0/redis-cli.exe ping:*)",
+      "Bash(tasklist:*)",
+      "Bash(echo:*)",
+      "Bash(ls:*)",
+      "Bash(E:/Redis-8.4.0/redis-cli.exe -a Redis840@passwd ping)",
+      "Bash(E:/Redis-8.4.0/redis-cli.exe:*)",
+      "Bash(grep:*)",
+      "Bash(powershell -Command \"Start-Process -FilePath ''cmd'' -ArgumentList ''/c cd /d E:\\\\work\\\\jsite\\\\jsite-admin && mvn spring-boot:run -DskipTests'' -NoNewWindow\")",
+      "Bash(powershell -Command \"Start-Process -FilePath ''cmd'' -ArgumentList ''/c cd /d E:\\\\work\\\\jsite\\\\jsite-ui && npm run dev'' -NoNewWindow\")",
+      "Bash(powershell:*)"
+    ]
+  }
+}

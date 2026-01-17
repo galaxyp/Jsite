@@ -15,7 +15,7 @@
     </resultMap>
 
     <delete id="cleanLogininfor">
-        truncate table sys_logininfor
+        truncate table sys_login_log
     </delete>
 
 </mapper>

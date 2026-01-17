@@ -96,12 +96,10 @@ public class SysMenu extends TreeEntity<SysMenu> {
     @TableField(exist = false)
     private List<SysMenu> children = new ArrayList<>();
 
-    @Override
     public Long getId() {
         return menuId;
     }
 
-    @Override
     public Long getParentIdValue() {
         return parentId;
     }

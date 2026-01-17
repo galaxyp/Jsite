@@ -8,6 +8,7 @@ import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
+import java.time.temporal.ChronoUnit;
 import java.util.Date;
 
 /**
@@ -153,7 +154,7 @@ public class DateUtils {
      * 计算两个日期之间的天数
      */
     public static long betweenDays(LocalDate start, LocalDate end) {
-        return LocalDateTimeUtil.between(start, end).toDays();
+        return ChronoUnit.DAYS.between(start, end);
     }
 
     /**

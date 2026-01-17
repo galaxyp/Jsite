@@ -9,10 +9,10 @@ import java.io.Serializable;
 import java.time.LocalDateTime;
 
 /**
- * 系统访问记录表 sys_logininfor
+ * 系统访问记录表 sys_login_log
  */
 @Data
-@TableName("sys_logininfor")
+@TableName("sys_login_log")
 public class SysLogininfor implements Serializable {
 
     private static final long serialVersionUID = 1L;
@@ -20,7 +20,7 @@ public class SysLogininfor implements Serializable {
     /**
      * 访问ID
      */
-    @TableId(type = IdType.AUTO)
+    @TableId(value = "info_id", type = IdType.AUTO)
     private Long infoId;
 
     /**

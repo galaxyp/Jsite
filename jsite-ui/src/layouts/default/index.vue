@@ -120,16 +120,6 @@ const breadcrumb = computed(() => {
   return route.matched.filter((item) => item.meta && item.meta.title)
 })
 
-// 监听路由变化，更新标签页
-watch(
-  () => route.path,
-  () => {
-    activeTab.value = route.path
-    addTab()
-  },
-  { immediate: true }
-)
-
 /**
  * 添加标签页
  */
@@ -149,6 +139,16 @@ const addTab = () => {
     }
   }
 }
+
+// 监听路由变化，更新标签页
+watch(
+  () => route.path,
+  () => {
+    activeTab.value = route.path
+    addTab()
+  },
+  { immediate: true }
+)
 
 /**
  * 处理标签页编辑（关闭）

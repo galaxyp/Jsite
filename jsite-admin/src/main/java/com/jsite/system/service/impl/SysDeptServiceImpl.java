@@ -16,6 +16,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -181,7 +182,8 @@ public class SysDeptServiceImpl extends ServiceImpl<SysDeptMapper, SysDept> impl
      */
     private void updateParentDeptStatusNormal(SysDept dept) {
         String ancestors = dept.getAncestors();
-        Long[] deptIds = StrUtil.splitToLong(ancestors, ",");
+        long[] primitiveIds = StrUtil.splitToLong(ancestors, ",");
+        Long[] deptIds = Arrays.stream(primitiveIds).boxed().toArray(Long[]::new);
         deptMapper.updateDeptStatusNormal(deptIds);
     }
 

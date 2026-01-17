@@ -100,11 +100,8 @@ public class SysUserOnlineServiceImpl implements ISysUserOnlineService {
                 userOnline.setUserName(user.getUserName());
                 userOnline.setDeptName(user.getDept() != null ? user.getDept().getDeptName() : "");
             }
-            // 获取token信息
-            List<String> tokenList = session.getTokenValueList();
-            if (!tokenList.isEmpty()) {
-                userOnline.setTokenId(tokenList.get(0));
-            }
+            // 获取token信息 - 使用session id作为token标识
+            userOnline.setTokenId(session.getId());
             // 从session获取其他信息
             Object ipaddr = session.get("ipaddr");
             if (ipaddr != null) {

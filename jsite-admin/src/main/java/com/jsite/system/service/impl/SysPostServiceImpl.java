@@ -1,6 +1,7 @@
 package com.jsite.system.service.impl;
 
 import cn.hutool.core.util.ObjectUtil;
+import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.jsite.common.core.page.PageQuery;
@@ -29,7 +30,7 @@ public class SysPostServiceImpl extends ServiceImpl<SysPostMapper, SysPost> impl
     @Override
     public TableDataInfo<SysPost> selectPagePostList(SysPost post) {
         Page<SysPost> page = new Page<>(PageQuery.getPageNum(), PageQuery.getPageSize());
-        Page<SysPost> result = postMapper.selectPostList(page, post);
+        IPage<SysPost> result = postMapper.selectPostList(page, post);
         return TableDataInfo.build(result);
     }
 

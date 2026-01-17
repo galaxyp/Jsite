@@ -1,0 +1,9 @@
+com\jsite\JsiteApplicationTests.class
+com\jsite\system\service\SysDictServiceTest.class
+com\jsite\system\service\SysRoleServiceTest.class
+com\jsite\system\service\SysRoleServiceTest$1.class
+com\jsite\system\controller\SysLoginControllerTest.class
+com\jsite\system\service\SysRoleServiceTest$2.class
+com\jsite\system\service\SysUserServiceTest.class
+com\jsite\system\controller\SysUserControllerTest.class
+com\jsite\system\service\SysMenuServiceTest.class

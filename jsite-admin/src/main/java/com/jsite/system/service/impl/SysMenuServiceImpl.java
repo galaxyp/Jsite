@@ -301,7 +301,9 @@ public class SysMenuServiceImpl extends ServiceImpl<SysMenuMapper, SysMenu> impl
      * 是否为内链组件
      */
     private boolean isInnerLink(SysMenu menu) {
-        return menu.getIsFrame().equals(Constants.NO_FRAME) && StringUtils.ishttp(menu.getPath());
+        String path = menu.getPath();
+        return menu.getIsFrame().equals(Constants.NO_FRAME) && path != null
+                && (path.startsWith("http://") || path.startsWith("https://"));
     }
 
     /**
@@ -315,6 +317,6 @@ public class SysMenuServiceImpl extends ServiceImpl<SysMenuMapper, SysMenu> impl
      * 内链域名特殊字符替换
      */
     private String innerLinkReplaceEach(String path) {
-        return StrUtil.replaceChars(path, new char[]{':', '/', '.', '?', '&', '='}, new char[]{'_', '_', '_', '_', '_', '_'});
+        return StrUtil.replaceChars(path, ":/.?&=", "______");
     }
 }
