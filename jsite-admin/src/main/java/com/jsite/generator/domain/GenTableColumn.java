@@ -2,6 +2,7 @@ package com.jsite.generator.domain;
 
 import cn.hutool.core.util.StrUtil;
 import com.baomidou.mybatisplus.annotation.IdType;
+import com.baomidou.mybatisplus.annotation.TableField;
 import com.baomidou.mybatisplus.annotation.TableId;
 import com.baomidou.mybatisplus.annotation.TableName;
 import com.jsite.common.core.domain.BaseEntity;
@@ -17,6 +18,12 @@ import lombok.EqualsAndHashCode;
 public class GenTableColumn extends BaseEntity {
 
     private static final long serialVersionUID = 1L;
+
+    /**
+     * 排除父类的 delFlag 字段（gen_table_column 表没有此字段）
+     */
+    @TableField(exist = false)
+    private String delFlag;
 
     /**
      * 编号

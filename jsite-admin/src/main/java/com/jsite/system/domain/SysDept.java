@@ -30,7 +30,7 @@ public class SysDept extends TreeEntity<SysDept> {
      * 部门ID
      */
     @Schema(description = "部门ID")
-    @TableId(type = IdType.AUTO)
+    @TableId(value = "id", type = IdType.AUTO)
     private Long deptId;
 
     /**

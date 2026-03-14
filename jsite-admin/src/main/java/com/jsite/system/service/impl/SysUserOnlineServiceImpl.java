@@ -3,6 +3,7 @@ package com.jsite.system.service.impl;
 import cn.dev33.satoken.session.SaSession;
 import cn.dev33.satoken.stp.StpUtil;
 import cn.hutool.core.util.StrUtil;
+import com.jsite.common.constant.Constants;
 import com.jsite.system.domain.SysUser;
 import com.jsite.system.domain.SysUserOnline;
 import com.jsite.system.service.ISysUserOnlineService;
@@ -64,16 +65,34 @@ public class SysUserOnlineServiceImpl implements ISysUserOnlineService {
     @Override
     public List<SysUserOnline> selectOnlineAll() {
         List<SysUserOnline> userOnlineList = new ArrayList<>();
-        // 获取所有已登录的会话id
-        List<String> sessionIds = StpUtil.searchSessionId("", 0, -1, false);
-        for (String sessionId : sessionIds) {
-            SaSession session = StpUtil.getSessionBySessionId(sessionId);
-            if (session != null) {
-                SysUserOnline userOnline = convertToUserOnline(session);
-                if (userOnline != null) {
-                    userOnlineList.add(userOnline);
+        try {
+            // 获取所有已登录的会话 id（即 userId 字符串列表）
+            List<String> sessionIds = StpUtil.searchSessionId("", 0, -1, false);
+            for (String sessionId : sessionIds) {
+                SaSession session = StpUtil.getSessionBySessionId(sessionId);
+                if (session == null) continue;
+                // 获取该用户的所有有效 token
+                Object loginId = session.getId();
+                List<String> tokenList;
+                try {
+                    tokenList = StpUtil.getTokenValueListByLoginId(loginId);
+                } catch (Exception e) {
+                    tokenList = new ArrayList<>();
+                }
+                if (tokenList.isEmpty()) {
+                    // 没有有效 token 就跳过
+                    continue;
+                }
+                // 每个 token 对应一条在线记录
+                for (String tokenValue : tokenList) {
+                    SysUserOnline userOnline = convertToUserOnline(session, tokenValue);
+                    if (userOnline != null) {
+                        userOnlineList.add(userOnline);
+                    }
                 }
             }
+        } catch (Exception e) {
+            // searchSessionId 不支持时返回空列表
         }
         return userOnlineList;
     }
@@ -90,19 +109,26 @@ public class SysUserOnlineServiceImpl implements ISysUserOnlineService {
 
     /**
      * 转换为在线用户对象
+     *
+     * @param session    用户 Account Session
+     * @param tokenValue 该次登录的真实 token 值
      */
-    private SysUserOnline convertToUserOnline(SaSession session) {
+    private SysUserOnline convertToUserOnline(SaSession session, String tokenValue) {
         SysUserOnline userOnline = new SysUserOnline();
         try {
-            Object obj = session.get("loginUser");
+            // 用正确的 key 取出用户对象
+            Object obj = session.get(Constants.LOGIN_USER_KEY);
             if (obj instanceof SysUser) {
                 SysUser user = (SysUser) obj;
                 userOnline.setUserName(user.getUserName());
                 userOnline.setDeptName(user.getDept() != null ? user.getDept().getDeptName() : "");
+            } else if (obj != null) {
+                // 兼容序列化后的 LinkedHashMap 等类型
+                userOnline.setUserName(obj.toString());
             }
-            // 获取token信息 - 使用session id作为token标识
-            userOnline.setTokenId(session.getId());
-            // 从session获取其他信息
+            // 使用真实 token 值作为会话编号，强退时需要
+            userOnline.setTokenId(tokenValue);
+            // 从 session 获取登录时附加的信息
             Object ipaddr = session.get("ipaddr");
             if (ipaddr != null) {
                 userOnline.setIpaddr(ipaddr.toString());

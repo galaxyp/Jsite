@@ -37,6 +37,7 @@
           </a-breadcrumb>
         </div>
         <div class="header-right">
+          <ThemeSwitcher />
           <a-dropdown>
             <div class="user-info">
               <a-avatar :size="28">
@@ -105,6 +106,7 @@ import {
 } from '@ant-design/icons-vue'
 import { useUserStore } from '@/store/modules/user'
 import SiderMenu from './sider/SiderMenu.vue'
+import ThemeSwitcher from '@/components/ThemeSwitcher.vue'
 
 const route = useRoute()
 const router = useRouter()
@@ -213,7 +215,6 @@ const handleLogout = () => {
     justify-content: center;
     padding: 0 16px;
     background: rgba(255, 255, 255, 0.1);
-
     img {
       width: 28px;
       height: 28px;
@@ -227,6 +228,7 @@ const handleLogout = () => {
       margin: 0;
     }
   }
+
 }
 
 .layout-header {
@@ -259,6 +261,9 @@ const handleLogout = () => {
   }
 
   .header-right {
+    display: flex;
+    align-items: center;
+
     .user-info {
       display: flex;
       align-items: center;
@@ -277,13 +282,24 @@ const handleLogout = () => {
 }
 
 .layout-tabs {
-  background: #fff;
+  background: var(--header-bg, #fff);
   padding: 0 16px;
-  border-bottom: 1px solid #e8e8e8;
+  border-bottom: 1px solid var(--border-color, #e8e8e8);
 
   :deep(.ant-tabs) {
     .ant-tabs-nav {
       margin: 0;
+    }
+    /* 选中标签 */
+    .ant-tabs-tab.ant-tabs-tab-active .ant-tabs-tab-btn {
+      color: var(--primary-color, #1890ff);
+    }
+    /* 未选中标签：确保文字可见 */
+    .ant-tabs-tab .ant-tabs-tab-btn {
+      color: rgba(0, 0, 0, 0.65);
+    }
+    .ant-tabs-ink-bar {
+      background: var(--primary-color, #1890ff);
     }
   }
 }

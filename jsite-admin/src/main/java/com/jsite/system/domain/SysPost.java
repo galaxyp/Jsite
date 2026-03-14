@@ -1,6 +1,7 @@
 package com.jsite.system.domain;
 
 import com.baomidou.mybatisplus.annotation.IdType;
+import com.baomidou.mybatisplus.annotation.TableField;
 import com.baomidou.mybatisplus.annotation.TableId;
 import com.baomidou.mybatisplus.annotation.TableName;
 import com.jsite.common.core.domain.BaseEntity;
@@ -16,9 +17,15 @@ import lombok.EqualsAndHashCode;
 public class SysPost extends BaseEntity {
 
     /**
+     * 表中无此列时避免继承 BaseEntity 的 @TableLogic 参与 SQL（与 sys_menu 处理一致）
+     */
+    @TableField(exist = false)
+    private String delFlag;
+
+    /**
      * 岗位ID
      */
-    @TableId(type = IdType.AUTO)
+    @TableId(value = "id", type = IdType.AUTO)
     private Long postId;
 
     /**

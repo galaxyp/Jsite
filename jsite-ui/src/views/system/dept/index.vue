@@ -65,9 +65,8 @@
               <a-popconfirm
                 title="确定删除该部门吗？"
                 @confirm="handleDelete(record)"
-                v-permission="['system:dept:remove']"
               >
-                <a class="danger" v-if="record.parentId !== 0">删除</a>
+                <a class="danger" v-if="record.parentId !== 0" v-permission="['system:dept:remove']">删除</a>
               </a-popconfirm>
             </a-space>
           </template>

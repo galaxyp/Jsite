@@ -50,17 +50,17 @@
     <!-- 表格 -->
     <a-card size="small" :bordered="false" style="margin-top: 8px">
       <a-table
+        :loading="loading"
         :columns="columns"
         :data-source="menuList"
-        :loading="loading"
         :pagination="false"
         :expanded-row-keys="expandedRowKeys"
-        row-key="menuId"
+        :row-key="(record) => String(record.menuId)"
         @expand="onExpand"
       >
         <template #bodyCell="{ column, record }">
           <template v-if="column.dataIndex === 'icon'">
-            <component :is="record.icon ? record.icon + 'Outlined' : 'AppstoreOutlined'" />
+            <component :is="resolveIcon(record.icon)" />
           </template>
           <template v-if="column.dataIndex === 'status'">
             <a-tag :color="record.status === '0' ? 'green' : 'red'">
@@ -74,9 +74,8 @@
               <a-popconfirm
                 title="确定删除该菜单吗？"
                 @confirm="handleDelete(record)"
-                v-permission="['system:menu:remove']"
               >
-                <a class="danger">删除</a>
+                <a class="danger" v-permission="['system:menu:remove']">删除</a>
               </a-popconfirm>
             </a-space>
           </template>
@@ -172,7 +171,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, reactive, onMounted } from 'vue'
+import { ref, reactive, computed, onMounted } from 'vue'
 import { message } from 'ant-design-vue'
 import {
   SearchOutlined,
@@ -186,7 +185,7 @@ const open = ref(false)
 const title = ref('')
 const menuList = ref<any[]>([])
 const menuOptions = ref<any[]>([])
-const expandedRowKeys = ref<number[]>([])
+const expandedRowKeys = ref<string[]>([])
 const isExpandAll = ref(false)
 const formRef = ref()
 
@@ -211,9 +210,22 @@ const form = reactive<any>({
   perms: undefined,
 })
 
-const rules = {
+const rules = computed(() => ({
   menuName: [{ required: true, message: '菜单名称不能为空', trigger: 'blur' }],
   orderNum: [{ required: true, message: '显示排序不能为空', trigger: 'blur' }],
+  path: form.menuType !== 'F'
+    ? [{ required: true, message: '路由地址不能为空', trigger: 'blur' }]
+    : [],
+}))
+
+// 解析图标名称：排除空值和 '#' 占位符，防止生成非法标签名
+const resolveIcon = (icon: string): string => {
+  if (!icon || icon === '#' || icon.trim() === '') return 'AppstoreOutlined'
+  // 已经是完整组件名（以 Outlined/Filled/TwoTone 结尾），直接用
+  if (icon.endsWith('Outlined') || icon.endsWith('Filled') || icon.endsWith('TwoTone')) {
+    return icon
+  }
+  return icon + 'Outlined'
 }
 
 const columns = [
@@ -227,19 +239,61 @@ const columns = [
   { title: '操作', dataIndex: 'action', width: 180, fixed: 'right' },
 ]
 
-// 转换菜单数据结构为树形
-const handleTree = (data: any[], parentId = 0): any[] => {
-  const result: any[] = []
-  for (const item of data) {
-    if (item.parentId === parentId) {
-      const children = handleTree(data, item.menuId)
-      if (children.length > 0) {
-        item.children = children
+// 将后端平铺列表转换为树形结构
+const buildTree = (data: any[]): any[] => {
+  if (!data || data.length === 0) return []
+  
+  const map = new Map<number, any>()
+  const roots: any[] = []
+  
+  // 第一遍：为每个节点创建副本并建立索引
+  data.forEach(item => {
+    map.set(item.menuId, { ...item, children: [] })
+  })
+  
+  // 第二遍：建立父子关系
+  data.forEach(item => {
+    const node = map.get(item.menuId)!
+    if (item.parentId === 0) {
+      // 根节点
+      roots.push(node)
+    } else {
+      // 子节点：挂到父节点下
+      const parent = map.get(item.parentId)
+      if (parent) {
+        parent.children.push(node)
+      } else {
+        // 找不到父节点，当作根节点
+        roots.push(node)
       }
-      result.push(item)
+    }
+  })
+  
+  // 第三遍：清理空 children（让 Ant Design Vue 不显示展开图标）
+  const removeEmptyChildren = (nodes: any[]) => {
+    nodes.forEach(node => {
+      if (node.children && node.children.length === 0) {
+        delete node.children
+      } else if (node.children && node.children.length > 0) {
+        removeEmptyChildren(node.children)
+      }
+    })
+  }
+  removeEmptyChildren(roots)
+  
+  return roots
+}
+
+// 递归收集树中所有有子节点的节点 ID（转为字符串，与 row-key 保持一致）
+const collectExpandedKeys = (items: any[]): string[] => {
+  const keys: string[] = []
+  for (const item of items) {
+    if (item.children && item.children.length > 0) {
+      keys.push(String(item.menuId))
+      keys.push(...collectExpandedKeys(item.children))
     }
   }
-  return result
+  return keys
 }
 
 // 查询菜单列表
@@ -247,10 +301,36 @@ const getList = async () => {
   loading.value = true
   try {
     const res = await listMenu(queryParams)
-    menuList.value = handleTree(res.data)
-    menuOptions.value = [{ menuId: 0, menuName: '主类目', children: menuList.value }]
+    if (!res || !res.data) {
+      message.warning('未获取到菜单数据')
+    menuList.value = []
+    expandedRowKeys.value = [] as string[]
+    return
+  }
+  const flatList: any[] = res.data
+  const tree = buildTree(flatList)
+  menuList.value = tree
+  menuOptions.value = [{ menuId: 0, menuName: '主类目', children: tree }]
+  // 默认折叠，不设置 expandedRowKeys
+  expandedRowKeys.value = []
+  } catch (e) {
+    console.error('菜单列表加载失败', e)
+    message.error('加载菜单列表失败，请刷新重试')
+    menuList.value = []
+    expandedRowKeys.value = [] as string[]
   } finally {
     loading.value = false
+  }
+}
+
+// 展开/折叠行（用户点击触发）
+const onExpand = (expanded: boolean, record: any) => {
+  const id = String(record.menuId)
+  const keySet = new Set(expandedRowKeys.value)
+  if (expanded && !keySet.has(id)) {
+    expandedRowKeys.value = [...expandedRowKeys.value, id]
+  } else if (!expanded && keySet.has(id)) {
+    expandedRowKeys.value = expandedRowKeys.value.filter((k) => k !== id)
   }
 }
 
@@ -266,34 +346,13 @@ const resetQuery = () => {
   handleQuery()
 }
 
-// 展开/折叠
+// 展开/折叠全部
 const toggleExpandAll = () => {
   isExpandAll.value = !isExpandAll.value
   if (isExpandAll.value) {
-    expandedRowKeys.value = getAllMenuIds(menuList.value)
+    expandedRowKeys.value = collectExpandedKeys(menuList.value)
   } else {
     expandedRowKeys.value = []
-  }
-}
-
-// 获取所有菜单ID
-const getAllMenuIds = (menus: any[]): number[] => {
-  const ids: number[] = []
-  for (const menu of menus) {
-    ids.push(menu.menuId)
-    if (menu.children) {
-      ids.push(...getAllMenuIds(menu.children))
-    }
-  }
-  return ids
-}
-
-// 展开事件
-const onExpand = (expanded: boolean, record: any) => {
-  if (expanded) {
-    expandedRowKeys.value.push(record.menuId)
-  } else {
-    expandedRowKeys.value = expandedRowKeys.value.filter((id) => id !== record.menuId)
   }
 }
 
@@ -350,14 +409,14 @@ const submitForm = async () => {
     message.success('新增成功')
   }
   open.value = false
-  getList()
+  await getList()
 }
 
 // 删除
 const handleDelete = async (row: any) => {
   await delMenu(row.menuId)
   message.success('删除成功')
-  getList()
+  await getList()
 }
 
 onMounted(() => {

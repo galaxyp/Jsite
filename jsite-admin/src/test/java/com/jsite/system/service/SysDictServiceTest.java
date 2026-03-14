@@ -49,10 +49,15 @@ class SysDictServiceTest {
 
     @Test
     void testCheckDictTypeUnique() {
-        // 测试字典类型唯一性检查
-        SysDictType dictType = new SysDictType();
-        dictType.setDictType("sys_user_sex");
-        boolean exists = dictTypeService.checkDictTypeUnique(dictType);
-        assertTrue(exists);
+        // checkDictTypeUnique 返回 true 表示"类型名可用（唯一）"，false 表示"已被占用（不唯一）"
+        // 场景1：已存在的类型名 sys_user_sex，不传 dictId（视为新增），应返回 false（已被占用）
+        SysDictType existing = new SysDictType();
+        existing.setDictType("sys_user_sex");
+        assertFalse(dictTypeService.checkDictTypeUnique(existing), "已存在的字典类型应不唯一");
+
+        // 场景2：不存在的类型名，应返回 true（可用）
+        SysDictType newType = new SysDictType();
+        newType.setDictType("sys_not_exist_type_xyz");
+        assertTrue(dictTypeService.checkDictTypeUnique(newType), "不存在的字典类型应唯一");
     }
 }

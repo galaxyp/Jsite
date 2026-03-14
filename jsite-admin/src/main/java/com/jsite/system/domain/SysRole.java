@@ -21,7 +21,7 @@ public class SysRole extends BaseEntity {
     /**
      * 角色ID
      */
-    @TableId(type = IdType.AUTO)
+    @TableId(value = "id", type = IdType.AUTO)
     private Long roleId;
 
     /**

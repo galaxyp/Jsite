@@ -1,9 +1,21 @@
 -- ----------------------------
 -- JSite 快速开发平台数据库初始化脚本
--- 数据库：MySQL 8.0+
+-- 数据库：MySQL 8.0.16+（需支持 CHECK 约束）
+-- 版本：v4
+-- 变更记录：
+--   v1 初始版本
+--   v2 合并 jsite_v2.sql / gen_table.sql，统一主键字段为 id
+--   v3 修正 sys_role 补充 menu_check_strictly / dept_check_strictly 列
+--       修正 sys_login_log 主键为 info_id，列名与实体对齐
+--       修正密码为 MD5 格式（与 SecurityUtils.encryptPassword 对应）
+--   v4 sys_menu.path 改为 NOT NULL，新增 CHECK 约束防止目录/菜单类型路由地址为空
+--       （path 为空会导致前端 router.addRoute 抛出异常，整棵路由树注册失败，所有子菜单显示404）
+-- 说明：所有系统表主键统一使用 id 字段（与 XML Mapper 及实体 @TableId 注解对应）
+--       sys_login_log 使用 info_id 主键（与 SysLogininfor 实体对应）
+--       gen_table 使用 table_id 主键（与 GenTable 实体对应）
 -- ----------------------------
 
--- 创建数据库
+-- 创建数据库（按需开启）
 -- CREATE DATABASE IF NOT EXISTS jsite DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci;
 -- USE jsite;
 
@@ -12,6 +24,8 @@ SET FOREIGN_KEY_CHECKS = 0;
 
 -- ----------------------------
 -- 1. 用户表
+-- 实体：SysUser  @TableId(value = "id")
+-- Mapper：SysUserMapper.xml  column="id"
 -- ----------------------------
 DROP TABLE IF EXISTS sys_user;
 CREATE TABLE sys_user (
@@ -42,6 +56,8 @@ CREATE TABLE sys_user (
 
 -- ----------------------------
 -- 2. 部门表
+-- 实体：SysDept  @TableId(value = "id")
+-- Mapper：SysDeptMapper.xml  column="id"
 -- ----------------------------
 DROP TABLE IF EXISTS sys_dept;
 CREATE TABLE sys_dept (
@@ -64,27 +80,34 @@ CREATE TABLE sys_dept (
 
 -- ----------------------------
 -- 3. 角色表
+-- 实体：SysRole  @TableId(value = "id")
+-- Mapper：SysRoleMapper.xml  column="id"
 -- ----------------------------
 DROP TABLE IF EXISTS sys_role;
 CREATE TABLE sys_role (
-    id              BIGINT          NOT NULL AUTO_INCREMENT COMMENT '角色ID',
-    role_name       VARCHAR(30)     NOT NULL COMMENT '角色名称',
-    role_key        VARCHAR(100)    NOT NULL COMMENT '角色权限字符串',
-    role_sort       INT             NOT NULL COMMENT '显示顺序',
-    data_scope      CHAR(1)         DEFAULT '1' COMMENT '数据范围（1全部 2自定义 3本部门 4本部门及以下 5仅本人）',
-    status          CHAR(1)         DEFAULT '0' COMMENT '角色状态（0正常 1停用）',
-    create_by       VARCHAR(64)     DEFAULT '' COMMENT '创建者',
-    create_time     DATETIME        DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
-    update_by       VARCHAR(64)     DEFAULT '' COMMENT '更新者',
-    update_time     DATETIME        DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
-    remark          VARCHAR(500)    DEFAULT '' COMMENT '备注',
-    del_flag        CHAR(1)         DEFAULT '0' COMMENT '删除标志（0正常 1删除）',
+    id                      BIGINT          NOT NULL AUTO_INCREMENT COMMENT '角色ID',
+    role_name               VARCHAR(30)     NOT NULL COMMENT '角色名称',
+    role_key                VARCHAR(100)    NOT NULL COMMENT '角色权限字符串',
+    role_sort               INT             NOT NULL COMMENT '显示顺序',
+    data_scope              CHAR(1)         DEFAULT '1' COMMENT '数据范围（1全部 2自定义 3本部门 4本部门及以下 5仅本人）',
+    menu_check_strictly     TINYINT(1)      DEFAULT 1 COMMENT '菜单树选择项是否关联显示',
+    dept_check_strictly     TINYINT(1)      DEFAULT 1 COMMENT '部门树选择项是否关联显示',
+    status                  CHAR(1)         DEFAULT '0' COMMENT '角色状态（0正常 1停用）',
+    create_by               VARCHAR(64)     DEFAULT '' COMMENT '创建者',
+    create_time             DATETIME        DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+    update_by               VARCHAR(64)     DEFAULT '' COMMENT '更新者',
+    update_time             DATETIME        DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
+    remark                  VARCHAR(500)    DEFAULT '' COMMENT '备注',
+    del_flag                CHAR(1)         DEFAULT '0' COMMENT '删除标志（0正常 1删除）',
     PRIMARY KEY (id),
     UNIQUE KEY uk_role_key (role_key)
 ) ENGINE=InnoDB AUTO_INCREMENT=100 COMMENT='角色表';
 
 -- ----------------------------
 -- 4. 菜单权限表
+-- 实体：SysMenu  @TableId(value = "id")
+-- Mapper：SysMenuMapper.xml  column="id"
+-- 约束说明：目录(M)和菜单(C)类型必须填写路由地址(path)，按钮(F)允许为空
 -- ----------------------------
 DROP TABLE IF EXISTS sys_menu;
 CREATE TABLE sys_menu (
@@ -92,7 +115,7 @@ CREATE TABLE sys_menu (
     menu_name       VARCHAR(50)     NOT NULL COMMENT '菜单名称',
     parent_id       BIGINT          DEFAULT 0 COMMENT '父菜单ID',
     order_num       INT             DEFAULT 0 COMMENT '显示顺序',
-    path            VARCHAR(200)    DEFAULT '' COMMENT '路由地址',
+    path            VARCHAR(200)    NOT NULL DEFAULT '' COMMENT '路由地址（目录/菜单类型不能为空）',
     component       VARCHAR(255)    DEFAULT NULL COMMENT '组件路径',
     query           VARCHAR(255)    DEFAULT NULL COMMENT '路由参数',
     is_frame        CHAR(1)         DEFAULT '1' COMMENT '是否外链（0是 1否）',
@@ -107,7 +130,10 @@ CREATE TABLE sys_menu (
     update_by       VARCHAR(64)     DEFAULT '' COMMENT '更新者',
     update_time     DATETIME        DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
     remark          VARCHAR(500)    DEFAULT '' COMMENT '备注',
-    PRIMARY KEY (id)
+    del_flag        CHAR(1)         DEFAULT '0' COMMENT '删除标志（0正常 1删除）',
+    PRIMARY KEY (id),
+    -- 目录(M)和菜单(C)类型必须有非空路由地址，防止前端路由注册失败
+    CONSTRAINT chk_menu_path CHECK (menu_type = 'F' OR (path IS NOT NULL AND path <> ''))
 ) ENGINE=InnoDB AUTO_INCREMENT=2000 COMMENT='菜单权限表';
 
 -- ----------------------------
@@ -142,6 +168,8 @@ CREATE TABLE sys_role_dept (
 
 -- ----------------------------
 -- 8. 岗位表
+-- 实体：SysPost  @TableId(value = "id")
+-- Mapper：SysPostMapper.xml  column="id"
 -- ----------------------------
 DROP TABLE IF EXISTS sys_post;
 CREATE TABLE sys_post (
@@ -172,6 +200,8 @@ CREATE TABLE sys_user_post (
 
 -- ----------------------------
 -- 10. 字典类型表
+-- 实体：SysDictType  @TableId(value = "id")
+-- Mapper：SysDictTypeMapper.xml  column="id"
 -- ----------------------------
 DROP TABLE IF EXISTS sys_dict_type;
 CREATE TABLE sys_dict_type (
@@ -184,12 +214,15 @@ CREATE TABLE sys_dict_type (
     update_by       VARCHAR(64)     DEFAULT '' COMMENT '更新者',
     update_time     DATETIME        DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
     remark          VARCHAR(500)    DEFAULT '' COMMENT '备注',
+    del_flag        CHAR(1)         DEFAULT '0' COMMENT '删除标志（0正常 1删除）',
     PRIMARY KEY (id),
     UNIQUE KEY uk_dict_type (dict_type)
 ) ENGINE=InnoDB AUTO_INCREMENT=100 COMMENT='字典类型表';
 
 -- ----------------------------
 -- 11. 字典数据表
+-- 实体：SysDictData  @TableId(value = "id")
+-- Mapper：SysDictDataMapper.xml  column="id"
 -- ----------------------------
 DROP TABLE IF EXISTS sys_dict_data;
 CREATE TABLE sys_dict_data (
@@ -207,12 +240,15 @@ CREATE TABLE sys_dict_data (
     update_by       VARCHAR(64)     DEFAULT '' COMMENT '更新者',
     update_time     DATETIME        DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
     remark          VARCHAR(500)    DEFAULT '' COMMENT '备注',
+    del_flag        CHAR(1)         DEFAULT '0' COMMENT '删除标志（0正常 1删除）',
     PRIMARY KEY (id),
     KEY idx_dict_type (dict_type)
 ) ENGINE=InnoDB AUTO_INCREMENT=100 COMMENT='字典数据表';
 
 -- ----------------------------
 -- 12. 系统配置表
+-- 实体：SysConfig  @TableId(value = "id")
+-- Mapper：SysConfigMapper.xml  column="id"
 -- ----------------------------
 DROP TABLE IF EXISTS sys_config;
 CREATE TABLE sys_config (
@@ -226,12 +262,15 @@ CREATE TABLE sys_config (
     update_by       VARCHAR(64)     DEFAULT '' COMMENT '更新者',
     update_time     DATETIME        DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
     remark          VARCHAR(500)    DEFAULT '' COMMENT '备注',
+    del_flag        CHAR(1)         DEFAULT '0' COMMENT '删除标志（0正常 1删除）',
     PRIMARY KEY (id),
     UNIQUE KEY uk_config_key (config_key)
 ) ENGINE=InnoDB AUTO_INCREMENT=100 COMMENT='系统配置表';
 
 -- ----------------------------
 -- 13. 操作日志表
+-- 实体：SysOperLog  @TableId(value = "id")
+-- Mapper：SysOperLogMapper.xml  column="id"
 -- ----------------------------
 DROP TABLE IF EXISTS sys_oper_log;
 CREATE TABLE sys_oper_log (
@@ -258,80 +297,85 @@ CREATE TABLE sys_oper_log (
 
 -- ----------------------------
 -- 14. 登录日志表
+-- 实体：SysLogininfor  @TableId(value = "info_id")
+-- Mapper：SysLogininforMapper.xml  column="info_id"
 -- ----------------------------
 DROP TABLE IF EXISTS sys_login_log;
 CREATE TABLE sys_login_log (
-    id              BIGINT          NOT NULL AUTO_INCREMENT COMMENT '访问ID',
-    login_name      VARCHAR(50)     DEFAULT '' COMMENT '登录账号',
-    ip_addr         VARCHAR(128)    DEFAULT '' COMMENT '登录IP',
+    info_id         BIGINT          NOT NULL AUTO_INCREMENT COMMENT '访问ID',
+    user_name       VARCHAR(50)     DEFAULT '' COMMENT '用户账号',
+    ipaddr          VARCHAR(128)    DEFAULT '' COMMENT '登录IP地址',
     login_location  VARCHAR(255)    DEFAULT '' COMMENT '登录地点',
     browser         VARCHAR(50)     DEFAULT '' COMMENT '浏览器类型',
     os              VARCHAR(50)     DEFAULT '' COMMENT '操作系统',
     status          CHAR(1)         DEFAULT '0' COMMENT '登录状态（0成功 1失败）',
     msg             VARCHAR(255)    DEFAULT '' COMMENT '提示消息',
     login_time      DATETIME        DEFAULT CURRENT_TIMESTAMP COMMENT '访问时间',
-    PRIMARY KEY (id),
+    PRIMARY KEY (info_id),
     KEY idx_login_time (login_time)
-) ENGINE=InnoDB AUTO_INCREMENT=100 COMMENT='登录日志表';
+) ENGINE=InnoDB AUTO_INCREMENT=100 COMMENT='系统访问记录';
 
 -- ----------------------------
 -- 15. 代码生成业务表
+-- 实体：GenTable  @TableId(type = IdType.AUTO) private Long tableId → table_id
+-- Mapper：GenTableMapper.xml  column="table_id"
 -- ----------------------------
 DROP TABLE IF EXISTS gen_table;
 CREATE TABLE gen_table (
-    id              BIGINT          NOT NULL AUTO_INCREMENT COMMENT '编号',
-    table_name      VARCHAR(200)    DEFAULT '' COMMENT '表名称',
-    table_comment   VARCHAR(500)    DEFAULT '' COMMENT '表描述',
-    sub_table_name  VARCHAR(64)     DEFAULT NULL COMMENT '关联子表的表名',
-    sub_table_fk    VARCHAR(64)     DEFAULT NULL COMMENT '子表关联外键',
-    class_name      VARCHAR(100)    DEFAULT '' COMMENT '实体类名称',
-    tpl_category    VARCHAR(200)    DEFAULT 'crud' COMMENT '使用的模板（crud单表 tree树表 sub主子表）',
-    package_name    VARCHAR(100)    DEFAULT '' COMMENT '生成包路径',
-    module_name     VARCHAR(30)     DEFAULT '' COMMENT '生成模块名',
-    business_name   VARCHAR(30)     DEFAULT '' COMMENT '生成业务名',
-    function_name   VARCHAR(50)     DEFAULT '' COMMENT '生成功能名',
-    function_author VARCHAR(50)     DEFAULT '' COMMENT '生成功能作者',
-    gen_type        CHAR(1)         DEFAULT '0' COMMENT '生成代码方式（0zip压缩包 1自定义路径）',
-    gen_path        VARCHAR(200)    DEFAULT '/' COMMENT '生成路径',
-    options         VARCHAR(1000)   DEFAULT '' COMMENT '其它生成选项',
-    create_by       VARCHAR(64)     DEFAULT '' COMMENT '创建者',
-    create_time     DATETIME        DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
-    update_by       VARCHAR(64)     DEFAULT '' COMMENT '更新者',
-    update_time     DATETIME        DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
-    remark          VARCHAR(500)    DEFAULT '' COMMENT '备注',
-    PRIMARY KEY (id)
+    table_id          BIGINT(20)      NOT NULL AUTO_INCREMENT               COMMENT '编号',
+    table_name        VARCHAR(200)    DEFAULT ''                            COMMENT '表名称',
+    table_comment     VARCHAR(500)    DEFAULT ''                            COMMENT '表描述',
+    sub_table_name    VARCHAR(64)     DEFAULT NULL                          COMMENT '关联子表的表名',
+    sub_table_fk_name VARCHAR(64)     DEFAULT NULL                          COMMENT '子表关联的外键名',
+    class_name        VARCHAR(100)    DEFAULT ''                            COMMENT '实体类名称',
+    tpl_category      VARCHAR(200)    DEFAULT 'crud'                        COMMENT '使用的模板（crud单表操作 tree树表操作）',
+    package_name      VARCHAR(100)                                          COMMENT '生成包路径',
+    module_name       VARCHAR(30)                                           COMMENT '生成模块名',
+    business_name     VARCHAR(30)                                           COMMENT '生成业务名',
+    function_name     VARCHAR(50)                                           COMMENT '生成功能名',
+    function_author   VARCHAR(50)                                           COMMENT '生成功能作者',
+    gen_type          CHAR(1)         DEFAULT '0'                           COMMENT '生成代码方式（0zip压缩包 1自定义路径）',
+    gen_path          VARCHAR(200)    DEFAULT '/'                           COMMENT '生成路径（不填默认项目路径）',
+    options           VARCHAR(1000)                                         COMMENT '其它生成选项',
+    create_by         VARCHAR(64)     DEFAULT ''                            COMMENT '创建者',
+    create_time       DATETIME                                              COMMENT '创建时间',
+    update_by         VARCHAR(64)     DEFAULT ''                            COMMENT '更新者',
+    update_time       DATETIME                                              COMMENT '更新时间',
+    remark            VARCHAR(500)    DEFAULT NULL                          COMMENT '备注',
+    PRIMARY KEY (table_id)
 ) ENGINE=InnoDB AUTO_INCREMENT=1 COMMENT='代码生成业务表';
 
 -- ----------------------------
--- 16. 代码生成列表
+-- 16. 代码生成字段表
+-- 实体：GenTableColumn  @TableId(type = IdType.AUTO) private Long columnId → column_id
+-- Mapper：GenTableMapper.xml  column="column_id"
 -- ----------------------------
 DROP TABLE IF EXISTS gen_table_column;
 CREATE TABLE gen_table_column (
-    id              BIGINT          NOT NULL AUTO_INCREMENT COMMENT '编号',
-    table_id        BIGINT          DEFAULT NULL COMMENT '归属表编号',
-    column_name     VARCHAR(200)    DEFAULT '' COMMENT '列名称',
-    column_comment  VARCHAR(500)    DEFAULT '' COMMENT '列描述',
-    column_type     VARCHAR(100)    DEFAULT '' COMMENT '列类型',
-    java_type       VARCHAR(500)    DEFAULT '' COMMENT 'Java类型',
-    java_field      VARCHAR(200)    DEFAULT '' COMMENT 'Java字段名',
-    is_pk           CHAR(1)         DEFAULT '0' COMMENT '是否主键（1是）',
-    is_increment    CHAR(1)         DEFAULT '0' COMMENT '是否自增（1是）',
-    is_required     CHAR(1)         DEFAULT '0' COMMENT '是否必填（1是）',
-    is_insert       CHAR(1)         DEFAULT '0' COMMENT '是否插入字段（1是）',
-    is_edit         CHAR(1)         DEFAULT '0' COMMENT '是否编辑字段（1是）',
-    is_list         CHAR(1)         DEFAULT '0' COMMENT '是否列表字段（1是）',
-    is_query        CHAR(1)         DEFAULT '0' COMMENT '是否查询字段（1是）',
-    query_type      VARCHAR(200)    DEFAULT 'EQ' COMMENT '查询方式（EQ= NE!= GT> GE>= LT< LE<= LIKE BETWEEN）',
-    html_type       VARCHAR(200)    DEFAULT '' COMMENT '显示类型（input textarea select checkbox radio datetime）',
-    dict_type       VARCHAR(200)    DEFAULT '' COMMENT '字典类型',
-    sort            INT             DEFAULT 0 COMMENT '排序',
-    create_by       VARCHAR(64)     DEFAULT '' COMMENT '创建者',
-    create_time     DATETIME        DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
-    update_by       VARCHAR(64)     DEFAULT '' COMMENT '更新者',
-    update_time     DATETIME        DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
-    PRIMARY KEY (id),
-    KEY idx_table_id (table_id)
-) ENGINE=InnoDB AUTO_INCREMENT=1 COMMENT='代码生成列表';
+    column_id         BIGINT(20)      NOT NULL AUTO_INCREMENT               COMMENT '编号',
+    table_id          BIGINT(20)      DEFAULT NULL                          COMMENT '归属表编号',
+    column_name       VARCHAR(200)    DEFAULT ''                            COMMENT '列名称',
+    column_comment    VARCHAR(500)    DEFAULT ''                            COMMENT '列描述',
+    column_type       VARCHAR(100)    DEFAULT ''                            COMMENT '列类型',
+    java_type         VARCHAR(500)    DEFAULT ''                            COMMENT 'Java类型',
+    java_field        VARCHAR(200)    DEFAULT ''                            COMMENT 'Java字段名',
+    is_pk             CHAR(1)         DEFAULT '0'                           COMMENT '是否主键（1是）',
+    is_increment      CHAR(1)         DEFAULT '0'                           COMMENT '是否自增（1是）',
+    is_required       CHAR(1)         DEFAULT '0'                           COMMENT '是否必填（1是）',
+    is_insert         CHAR(1)         DEFAULT '0'                           COMMENT '是否为插入字段（1是）',
+    is_edit           CHAR(1)         DEFAULT '0'                           COMMENT '是否编辑字段（1是）',
+    is_list           CHAR(1)         DEFAULT '0'                           COMMENT '是否列表字段（1是）',
+    is_query          CHAR(1)         DEFAULT '0'                           COMMENT '是否查询字段（1是）',
+    query_type        VARCHAR(200)    DEFAULT 'EQ'                          COMMENT '查询方式（等于、不等于、大于、小于、范围、模糊）',
+    html_type         VARCHAR(200)    DEFAULT ''                            COMMENT '显示类型（文本框、文本域、下拉框、复选框、单选框、日期控件）',
+    dict_type         VARCHAR(200)    DEFAULT ''                            COMMENT '字典类型',
+    sort              INT                                                   COMMENT '排序',
+    create_by         VARCHAR(64)     DEFAULT ''                            COMMENT '创建者',
+    create_time       DATETIME                                              COMMENT '创建时间',
+    update_by         VARCHAR(64)     DEFAULT ''                            COMMENT '更新者',
+    update_time       DATETIME                                              COMMENT '更新时间',
+    PRIMARY KEY (column_id)
+) ENGINE=InnoDB AUTO_INCREMENT=1 COMMENT='代码生成业务表字段';
 
 SET FOREIGN_KEY_CHECKS = 1;
 
@@ -342,28 +386,28 @@ SET FOREIGN_KEY_CHECKS = 1;
 -- ----------------------------
 -- 初始化部门数据
 -- ----------------------------
-INSERT INTO sys_dept VALUES (100, 0, '0', 'JSite科技', 0, '若依', '15888888888', 'jsite@qq.com', '0', 'admin', NOW(), '', NOW(), '0');
-INSERT INTO sys_dept VALUES (101, 100, '0,100', '深圳总公司', 1, '若依', '15888888888', 'jsite@qq.com', '0', 'admin', NOW(), '', NOW(), '0');
-INSERT INTO sys_dept VALUES (102, 100, '0,100', '长沙分公司', 2, '若依', '15888888888', 'jsite@qq.com', '0', 'admin', NOW(), '', NOW(), '0');
-INSERT INTO sys_dept VALUES (103, 101, '0,100,101', '研发部门', 1, '若依', '15888888888', 'jsite@qq.com', '0', 'admin', NOW(), '', NOW(), '0');
-INSERT INTO sys_dept VALUES (104, 101, '0,100,101', '市场部门', 2, '若依', '15888888888', 'jsite@qq.com', '0', 'admin', NOW(), '', NOW(), '0');
-INSERT INTO sys_dept VALUES (105, 101, '0,100,101', '测试部门', 3, '若依', '15888888888', 'jsite@qq.com', '0', 'admin', NOW(), '', NOW(), '0');
-INSERT INTO sys_dept VALUES (106, 101, '0,100,101', '财务部门', 4, '若依', '15888888888', 'jsite@qq.com', '0', 'admin', NOW(), '', NOW(), '0');
-INSERT INTO sys_dept VALUES (107, 101, '0,100,101', '运维部门', 5, '若依', '15888888888', 'jsite@qq.com', '0', 'admin', NOW(), '', NOW(), '0');
-INSERT INTO sys_dept VALUES (108, 102, '0,100,102', '市场部门', 1, '若依', '15888888888', 'jsite@qq.com', '0', 'admin', NOW(), '', NOW(), '0');
-INSERT INTO sys_dept VALUES (109, 102, '0,100,102', '财务部门', 2, '若依', '15888888888', 'jsite@qq.com', '0', 'admin', NOW(), '', NOW(), '0');
+INSERT INTO sys_dept VALUES (100, 0, '0', 'JSite科技', 0, '管理员', '15888888888', 'admin@jsite.com', '0', 'admin', NOW(), '', NOW(), '0');
+INSERT INTO sys_dept VALUES (101, 100, '0,100', '深圳总公司', 1, '管理员', '15888888888', 'shenzhen@jsite.com', '0', 'admin', NOW(), '', NOW(), '0');
+INSERT INTO sys_dept VALUES (102, 100, '0,100', '长沙分公司', 2, '管理员', '15888888888', 'changsha@jsite.com', '0', 'admin', NOW(), '', NOW(), '0');
+INSERT INTO sys_dept VALUES (103, 101, '0,100,101', '研发部门', 1, '管理员', '15888888888', 'rd@jsite.com', '0', 'admin', NOW(), '', NOW(), '0');
+INSERT INTO sys_dept VALUES (104, 101, '0,100,101', '市场部门', 2, '管理员', '15888888888', 'mkt@jsite.com', '0', 'admin', NOW(), '', NOW(), '0');
+INSERT INTO sys_dept VALUES (105, 101, '0,100,101', '测试部门', 3, '管理员', '15888888888', 'test@jsite.com', '0', 'admin', NOW(), '', NOW(), '0');
+INSERT INTO sys_dept VALUES (106, 101, '0,100,101', '财务部门', 4, '管理员', '15888888888', 'fin@jsite.com', '0', 'admin', NOW(), '', NOW(), '0');
+INSERT INTO sys_dept VALUES (107, 101, '0,100,101', '运维部门', 5, '管理员', '15888888888', 'ops@jsite.com', '0', 'admin', NOW(), '', NOW(), '0');
+INSERT INTO sys_dept VALUES (108, 102, '0,100,102', '市场部门', 1, '管理员', '15888888888', 'mkt2@jsite.com', '0', 'admin', NOW(), '', NOW(), '0');
+INSERT INTO sys_dept VALUES (109, 102, '0,100,102', '财务部门', 2, '管理员', '15888888888', 'fin2@jsite.com', '0', 'admin', NOW(), '', NOW(), '0');
 
 -- ----------------------------
--- 初始化用户数据（密码：admin123 -> MD5加密）
+-- 初始化用户数据（密码：admin123，MD5加密，与 SecurityUtils.encryptPassword 一致）
 -- ----------------------------
 INSERT INTO sys_user VALUES (1, 103, 'admin', '超级管理员', 'sys', 'admin@jsite.com', '15888888888', '1', '', '0192023a7bbd73250516f069df18b500', '', '0', '127.0.0.1', NOW(), NOW(), 'admin', NOW(), '', NOW(), '管理员', '0');
-INSERT INTO sys_user VALUES (2, 105, 'jsite', 'JSite', 'sys', 'jsite@qq.com', '15666666666', '1', '', '0192023a7bbd73250516f069df18b500', '', '0', '127.0.0.1', NOW(), NOW(), 'admin', NOW(), '', NOW(), '测试员', '0');
+INSERT INTO sys_user VALUES (2, 105, 'jsite', 'JSite', 'sys', 'jsite@jsite.com', '15666666666', '1', '', '0192023a7bbd73250516f069df18b500', '', '0', '127.0.0.1', NOW(), NOW(), 'admin', NOW(), '', NOW(), '测试员', '0');
 
 -- ----------------------------
 -- 初始化角色数据
 -- ----------------------------
-INSERT INTO sys_role VALUES (1, '超级管理员', 'admin', 1, '1', '0', 'admin', NOW(), '', NOW(), '超级管理员', '0');
-INSERT INTO sys_role VALUES (2, '普通角色', 'common', 2, '2', '0', 'admin', NOW(), '', NOW(), '普通角色', '0');
+INSERT INTO sys_role VALUES (1, '超级管理员', 'admin', 1, '1', 1, 1, '0', 'admin', NOW(), '', NOW(), '超级管理员', '0');
+INSERT INTO sys_role VALUES (2, '普通角色', 'common', 2, '2', 1, 1, '0', 'admin', NOW(), '', NOW(), '普通角色', '0');
 
 -- ----------------------------
 -- 初始化用户角色关联数据
@@ -405,7 +449,9 @@ INSERT INTO sys_menu VALUES (106, '参数设置', 1, 7, 'config', 'system/config
 -- 二级菜单 - 系统监控
 INSERT INTO sys_menu VALUES (109, '在线用户', 2, 1, 'online', 'monitor/online/index', '', '1', '0', 'C', '0', '0', 'monitor:online:list', 'online', 'admin', NOW(), '', NOW(), '在线用户菜单');
 INSERT INTO sys_menu VALUES (110, '操作日志', 2, 2, 'operlog', 'monitor/operlog/index', '', '1', '0', 'C', '0', '0', 'monitor:operlog:list', 'form', 'admin', NOW(), '', NOW(), '操作日志菜单');
-INSERT INTO sys_menu VALUES (111, '登录日志', 2, 3, 'loginlog', 'monitor/loginlog/index', '', '1', '0', 'C', '0', '0', 'monitor:loginlog:list', 'logininfor', 'admin', NOW(), '', NOW(), '登录日志菜单');
+INSERT INTO sys_menu VALUES (111, '登录日志', 2, 3, 'loginlog', 'monitor/logininfor/index', '', '1', '0', 'C', '0', '0', 'monitor:loginlog:list', 'logininfor', 'admin', NOW(), '', NOW(), '登录日志菜单');
+INSERT INTO sys_menu VALUES (112, '服务监控', 2, 4, 'server', 'monitor/server/index', '', '1', '0', 'C', '0', '0', 'monitor:server:list', 'server', 'admin', NOW(), '', NOW(), '服务监控菜单');
+INSERT INTO sys_menu VALUES (113, '缓存监控', 2, 5, 'cache', 'monitor/cache/index', '', '1', '0', 'C', '0', '0', 'monitor:cache:list', 'redis', 'admin', NOW(), '', NOW(), '缓存监控菜单');
 
 -- 二级菜单 - 系统工具
 INSERT INTO sys_menu VALUES (115, '代码生成', 3, 2, 'gen', 'tool/gen/index', '', '1', '0', 'C', '0', '0', 'tool:gen:list', 'code', 'admin', NOW(), '', NOW(), '代码生成菜单');
@@ -484,8 +530,78 @@ INSERT INTO sys_menu VALUES (1059, '预览代码', 115, 5, '', '', '', '1', '0',
 INSERT INTO sys_menu VALUES (1060, '生成代码', 115, 6, '', '', '', '1', '0', 'F', '0', '0', 'tool:gen:code', '#', 'admin', NOW(), '', NOW(), '');
 
 -- ----------------------------
--- 初始化角色菜单关联数据（普通角色）
+-- 初始化角色菜单关联数据
+-- 管理员角色（id=1）拥有所有菜单
 -- ----------------------------
+INSERT INTO sys_role_menu VALUES (1, 1);
+INSERT INTO sys_role_menu VALUES (1, 2);
+INSERT INTO sys_role_menu VALUES (1, 3);
+INSERT INTO sys_role_menu VALUES (1, 100);
+INSERT INTO sys_role_menu VALUES (1, 101);
+INSERT INTO sys_role_menu VALUES (1, 102);
+INSERT INTO sys_role_menu VALUES (1, 103);
+INSERT INTO sys_role_menu VALUES (1, 104);
+INSERT INTO sys_role_menu VALUES (1, 105);
+INSERT INTO sys_role_menu VALUES (1, 106);
+INSERT INTO sys_role_menu VALUES (1, 109);
+INSERT INTO sys_role_menu VALUES (1, 110);
+INSERT INTO sys_role_menu VALUES (1, 111);
+INSERT INTO sys_role_menu VALUES (1, 112);
+INSERT INTO sys_role_menu VALUES (1, 113);
+INSERT INTO sys_role_menu VALUES (1, 115);
+INSERT INTO sys_role_menu VALUES (1, 116);
+INSERT INTO sys_role_menu VALUES (1, 1000);
+INSERT INTO sys_role_menu VALUES (1, 1001);
+INSERT INTO sys_role_menu VALUES (1, 1002);
+INSERT INTO sys_role_menu VALUES (1, 1003);
+INSERT INTO sys_role_menu VALUES (1, 1004);
+INSERT INTO sys_role_menu VALUES (1, 1005);
+INSERT INTO sys_role_menu VALUES (1, 1006);
+INSERT INTO sys_role_menu VALUES (1, 1007);
+INSERT INTO sys_role_menu VALUES (1, 1008);
+INSERT INTO sys_role_menu VALUES (1, 1009);
+INSERT INTO sys_role_menu VALUES (1, 1010);
+INSERT INTO sys_role_menu VALUES (1, 1011);
+INSERT INTO sys_role_menu VALUES (1, 1012);
+INSERT INTO sys_role_menu VALUES (1, 1013);
+INSERT INTO sys_role_menu VALUES (1, 1014);
+INSERT INTO sys_role_menu VALUES (1, 1015);
+INSERT INTO sys_role_menu VALUES (1, 1016);
+INSERT INTO sys_role_menu VALUES (1, 1017);
+INSERT INTO sys_role_menu VALUES (1, 1018);
+INSERT INTO sys_role_menu VALUES (1, 1019);
+INSERT INTO sys_role_menu VALUES (1, 1020);
+INSERT INTO sys_role_menu VALUES (1, 1021);
+INSERT INTO sys_role_menu VALUES (1, 1022);
+INSERT INTO sys_role_menu VALUES (1, 1023);
+INSERT INTO sys_role_menu VALUES (1, 1024);
+INSERT INTO sys_role_menu VALUES (1, 1025);
+INSERT INTO sys_role_menu VALUES (1, 1026);
+INSERT INTO sys_role_menu VALUES (1, 1027);
+INSERT INTO sys_role_menu VALUES (1, 1028);
+INSERT INTO sys_role_menu VALUES (1, 1029);
+INSERT INTO sys_role_menu VALUES (1, 1030);
+INSERT INTO sys_role_menu VALUES (1, 1031);
+INSERT INTO sys_role_menu VALUES (1, 1032);
+INSERT INTO sys_role_menu VALUES (1, 1033);
+INSERT INTO sys_role_menu VALUES (1, 1034);
+INSERT INTO sys_role_menu VALUES (1, 1040);
+INSERT INTO sys_role_menu VALUES (1, 1041);
+INSERT INTO sys_role_menu VALUES (1, 1042);
+INSERT INTO sys_role_menu VALUES (1, 1043);
+INSERT INTO sys_role_menu VALUES (1, 1044);
+INSERT INTO sys_role_menu VALUES (1, 1045);
+INSERT INTO sys_role_menu VALUES (1, 1046);
+INSERT INTO sys_role_menu VALUES (1, 1047);
+INSERT INTO sys_role_menu VALUES (1, 1048);
+INSERT INTO sys_role_menu VALUES (1, 1055);
+INSERT INTO sys_role_menu VALUES (1, 1056);
+INSERT INTO sys_role_menu VALUES (1, 1057);
+INSERT INTO sys_role_menu VALUES (1, 1058);
+INSERT INTO sys_role_menu VALUES (1, 1059);
+INSERT INTO sys_role_menu VALUES (1, 1060);
+
+-- 普通角色（id=2）拥有基本查询权限
 INSERT INTO sys_role_menu VALUES (2, 1);
 INSERT INTO sys_role_menu VALUES (2, 2);
 INSERT INTO sys_role_menu VALUES (2, 100);
@@ -525,38 +641,38 @@ INSERT INTO sys_dict_type VALUES (9, '系统状态', 'sys_common_status', '0', '
 -- ----------------------------
 -- 初始化字典数据
 -- ----------------------------
-INSERT INTO sys_dict_data VALUES (1, 1, '男', '1', 'sys_user_sex', '', '', 'Y', '0', 'admin', NOW(), '', NOW(), '性别男');
-INSERT INTO sys_dict_data VALUES (2, 2, '女', '2', 'sys_user_sex', '', '', 'N', '0', 'admin', NOW(), '', NOW(), '性别女');
-INSERT INTO sys_dict_data VALUES (3, 3, '未知', '0', 'sys_user_sex', '', '', 'N', '0', 'admin', NOW(), '', NOW(), '性别未知');
-INSERT INTO sys_dict_data VALUES (4, 1, '显示', '0', 'sys_show_hide', '', 'primary', 'Y', '0', 'admin', NOW(), '', NOW(), '显示菜单');
-INSERT INTO sys_dict_data VALUES (5, 2, '隐藏', '1', 'sys_show_hide', '', 'danger', 'N', '0', 'admin', NOW(), '', NOW(), '隐藏菜单');
-INSERT INTO sys_dict_data VALUES (6, 1, '正常', '0', 'sys_normal_disable', '', 'primary', 'Y', '0', 'admin', NOW(), '', NOW(), '正常状态');
-INSERT INTO sys_dict_data VALUES (7, 2, '停用', '1', 'sys_normal_disable', '', 'danger', 'N', '0', 'admin', NOW(), '', NOW(), '停用状态');
-INSERT INTO sys_dict_data VALUES (8, 1, '正常', '0', 'sys_job_status', '', 'primary', 'Y', '0', 'admin', NOW(), '', NOW(), '正常状态');
-INSERT INTO sys_dict_data VALUES (9, 2, '暂停', '1', 'sys_job_status', '', 'danger', 'N', '0', 'admin', NOW(), '', NOW(), '停用状态');
-INSERT INTO sys_dict_data VALUES (10, 1, '是', 'Y', 'sys_yes_no', '', 'primary', 'Y', '0', 'admin', NOW(), '', NOW(), '系统默认是');
-INSERT INTO sys_dict_data VALUES (11, 2, '否', 'N', 'sys_yes_no', '', 'danger', 'N', '0', 'admin', NOW(), '', NOW(), '系统默认否');
-INSERT INTO sys_dict_data VALUES (12, 1, '通知', '1', 'sys_notice_type', '', 'warning', 'Y', '0', 'admin', NOW(), '', NOW(), '通知');
-INSERT INTO sys_dict_data VALUES (13, 2, '公告', '2', 'sys_notice_type', '', 'success', 'N', '0', 'admin', NOW(), '', NOW(), '公告');
-INSERT INTO sys_dict_data VALUES (14, 1, '正常', '0', 'sys_notice_status', '', 'primary', 'Y', '0', 'admin', NOW(), '', NOW(), '正常状态');
-INSERT INTO sys_dict_data VALUES (15, 2, '关闭', '1', 'sys_notice_status', '', 'danger', 'N', '0', 'admin', NOW(), '', NOW(), '关闭状态');
-INSERT INTO sys_dict_data VALUES (16, 1, '其他', '0', 'sys_oper_type', '', 'default', 'N', '0', 'admin', NOW(), '', NOW(), '其他操作');
-INSERT INTO sys_dict_data VALUES (17, 2, '新增', '1', 'sys_oper_type', '', 'success', 'N', '0', 'admin', NOW(), '', NOW(), '新增操作');
-INSERT INTO sys_dict_data VALUES (18, 3, '修改', '2', 'sys_oper_type', '', 'primary', 'N', '0', 'admin', NOW(), '', NOW(), '修改操作');
-INSERT INTO sys_dict_data VALUES (19, 4, '删除', '3', 'sys_oper_type', '', 'danger', 'N', '0', 'admin', NOW(), '', NOW(), '删除操作');
-INSERT INTO sys_dict_data VALUES (20, 5, '授权', '4', 'sys_oper_type', '', 'warning', 'N', '0', 'admin', NOW(), '', NOW(), '授权操作');
-INSERT INTO sys_dict_data VALUES (21, 6, '导出', '5', 'sys_oper_type', '', 'warning', 'N', '0', 'admin', NOW(), '', NOW(), '导出操作');
-INSERT INTO sys_dict_data VALUES (22, 7, '导入', '6', 'sys_oper_type', '', 'warning', 'N', '0', 'admin', NOW(), '', NOW(), '导入操作');
-INSERT INTO sys_dict_data VALUES (23, 8, '强退', '7', 'sys_oper_type', '', 'danger', 'N', '0', 'admin', NOW(), '', NOW(), '强退操作');
-INSERT INTO sys_dict_data VALUES (24, 9, '清空', '8', 'sys_oper_type', '', 'danger', 'N', '0', 'admin', NOW(), '', NOW(), '清空操作');
-INSERT INTO sys_dict_data VALUES (25, 1, '成功', '0', 'sys_common_status', '', 'primary', 'N', '0', 'admin', NOW(), '', NOW(), '正常状态');
-INSERT INTO sys_dict_data VALUES (26, 2, '失败', '1', 'sys_common_status', '', 'danger', 'N', '0', 'admin', NOW(), '', NOW(), '停用状态');
+INSERT INTO sys_dict_data VALUES (1,  1, '男',   '1', 'sys_user_sex',        '', '',        'Y', '0', 'admin', NOW(), '', NOW(), '性别男');
+INSERT INTO sys_dict_data VALUES (2,  2, '女',   '2', 'sys_user_sex',        '', '',        'N', '0', 'admin', NOW(), '', NOW(), '性别女');
+INSERT INTO sys_dict_data VALUES (3,  3, '未知', '0', 'sys_user_sex',        '', '',        'N', '0', 'admin', NOW(), '', NOW(), '性别未知');
+INSERT INTO sys_dict_data VALUES (4,  1, '显示', '0', 'sys_show_hide',       '', 'primary', 'Y', '0', 'admin', NOW(), '', NOW(), '显示菜单');
+INSERT INTO sys_dict_data VALUES (5,  2, '隐藏', '1', 'sys_show_hide',       '', 'danger',  'N', '0', 'admin', NOW(), '', NOW(), '隐藏菜单');
+INSERT INTO sys_dict_data VALUES (6,  1, '正常', '0', 'sys_normal_disable',  '', 'primary', 'Y', '0', 'admin', NOW(), '', NOW(), '正常状态');
+INSERT INTO sys_dict_data VALUES (7,  2, '停用', '1', 'sys_normal_disable',  '', 'danger',  'N', '0', 'admin', NOW(), '', NOW(), '停用状态');
+INSERT INTO sys_dict_data VALUES (8,  1, '正常', '0', 'sys_job_status',      '', 'primary', 'Y', '0', 'admin', NOW(), '', NOW(), '正常状态');
+INSERT INTO sys_dict_data VALUES (9,  2, '暂停', '1', 'sys_job_status',      '', 'danger',  'N', '0', 'admin', NOW(), '', NOW(), '停用状态');
+INSERT INTO sys_dict_data VALUES (10, 1, '是',   'Y', 'sys_yes_no',          '', 'primary', 'Y', '0', 'admin', NOW(), '', NOW(), '系统默认是');
+INSERT INTO sys_dict_data VALUES (11, 2, '否',   'N', 'sys_yes_no',          '', 'danger',  'N', '0', 'admin', NOW(), '', NOW(), '系统默认否');
+INSERT INTO sys_dict_data VALUES (12, 1, '通知', '1', 'sys_notice_type',     '', 'warning', 'Y', '0', 'admin', NOW(), '', NOW(), '通知');
+INSERT INTO sys_dict_data VALUES (13, 2, '公告', '2', 'sys_notice_type',     '', 'success', 'N', '0', 'admin', NOW(), '', NOW(), '公告');
+INSERT INTO sys_dict_data VALUES (14, 1, '正常', '0', 'sys_notice_status',   '', 'primary', 'Y', '0', 'admin', NOW(), '', NOW(), '正常状态');
+INSERT INTO sys_dict_data VALUES (15, 2, '关闭', '1', 'sys_notice_status',   '', 'danger',  'N', '0', 'admin', NOW(), '', NOW(), '关闭状态');
+INSERT INTO sys_dict_data VALUES (16, 1, '其他', '0', 'sys_oper_type',       '', 'default', 'N', '0', 'admin', NOW(), '', NOW(), '其他操作');
+INSERT INTO sys_dict_data VALUES (17, 2, '新增', '1', 'sys_oper_type',       '', 'success', 'N', '0', 'admin', NOW(), '', NOW(), '新增操作');
+INSERT INTO sys_dict_data VALUES (18, 3, '修改', '2', 'sys_oper_type',       '', 'primary', 'N', '0', 'admin', NOW(), '', NOW(), '修改操作');
+INSERT INTO sys_dict_data VALUES (19, 4, '删除', '3', 'sys_oper_type',       '', 'danger',  'N', '0', 'admin', NOW(), '', NOW(), '删除操作');
+INSERT INTO sys_dict_data VALUES (20, 5, '授权', '4', 'sys_oper_type',       '', 'warning', 'N', '0', 'admin', NOW(), '', NOW(), '授权操作');
+INSERT INTO sys_dict_data VALUES (21, 6, '导出', '5', 'sys_oper_type',       '', 'warning', 'N', '0', 'admin', NOW(), '', NOW(), '导出操作');
+INSERT INTO sys_dict_data VALUES (22, 7, '导入', '6', 'sys_oper_type',       '', 'warning', 'N', '0', 'admin', NOW(), '', NOW(), '导入操作');
+INSERT INTO sys_dict_data VALUES (23, 8, '强退', '7', 'sys_oper_type',       '', 'danger',  'N', '0', 'admin', NOW(), '', NOW(), '强退操作');
+INSERT INTO sys_dict_data VALUES (24, 9, '清空', '8', 'sys_oper_type',       '', 'danger',  'N', '0', 'admin', NOW(), '', NOW(), '清空操作');
+INSERT INTO sys_dict_data VALUES (25, 1, '成功', '0', 'sys_common_status',   '', 'primary', 'N', '0', 'admin', NOW(), '', NOW(), '正常状态');
+INSERT INTO sys_dict_data VALUES (26, 2, '失败', '1', 'sys_common_status',   '', 'danger',  'N', '0', 'admin', NOW(), '', NOW(), '停用状态');
 
 -- ----------------------------
 -- 初始化系统配置数据
 -- ----------------------------
-INSERT INTO sys_config VALUES (1, '主框架页-默认皮肤样式名称', 'sys.index.skinName', 'skin-blue', 'Y', 'admin', NOW(), '', NOW(), '蓝色 skin-blue、绿色 skin-green、紫色 skin-purple、红色 skin-red、黄色 skin-yellow');
-INSERT INTO sys_config VALUES (2, '用户管理-账号初始密码', 'sys.user.initPassword', '123456', 'Y', 'admin', NOW(), '', NOW(), '初始化密码 123456');
-INSERT INTO sys_config VALUES (3, '主框架页-侧边栏主题', 'sys.index.sideTheme', 'theme-dark', 'Y', 'admin', NOW(), '', NOW(), '深色主题theme-dark，浅色主题theme-light');
-INSERT INTO sys_config VALUES (4, '账号自助-验证码开关', 'sys.account.captchaEnabled', 'true', 'Y', 'admin', NOW(), '', NOW(), '是否开启验证码功能（true开启，false关闭）');
-INSERT INTO sys_config VALUES (5, '账号自助-是否开启用户注册功能', 'sys.account.registerUser', 'false', 'Y', 'admin', NOW(), '', NOW(), '是否开启注册用户功能（true开启，false关闭）');
+INSERT INTO sys_config VALUES (1, '主框架页-默认皮肤样式名称', 'sys.index.skinName',            'skin-blue',  'Y', 'admin', NOW(), '', NOW(), '蓝色 skin-blue、绿色 skin-green、紫色 skin-purple、红色 skin-red、黄色 skin-yellow');
+INSERT INTO sys_config VALUES (2, '用户管理-账号初始密码',     'sys.user.initPassword',          '123456',     'Y', 'admin', NOW(), '', NOW(), '初始化密码 123456');
+INSERT INTO sys_config VALUES (3, '主框架页-侧边栏主题',       'sys.index.sideTheme',            'theme-dark', 'Y', 'admin', NOW(), '', NOW(), '深色主题theme-dark，浅色主题theme-light');
+INSERT INTO sys_config VALUES (4, '账号自助-验证码开关',       'sys.account.captchaEnabled',     'true',       'Y', 'admin', NOW(), '', NOW(), '是否开启验证码功能（true开启，false关闭）');
+INSERT INTO sys_config VALUES (5, '账号自助-是否开启用户注册', 'sys.account.registerUser',       'false',      'Y', 'admin', NOW(), '', NOW(), '是否开启注册用户功能（true开启，false关闭）');

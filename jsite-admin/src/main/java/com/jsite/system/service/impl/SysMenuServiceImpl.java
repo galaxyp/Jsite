@@ -88,7 +88,11 @@ public class SysMenuServiceImpl extends ServiceImpl<SysMenuMapper, SysMenu> impl
     @Override
     public List<Long> selectMenuListByRoleId(Long roleId) {
         SysRole role = roleMapper.selectRoleById(roleId);
-        return menuMapper.selectMenuListByRoleId(roleId, role.getMenuCheckStrictly());
+        if (role == null) {
+            return Collections.emptyList();
+        }
+        boolean menuCheckStrictly = role.getMenuCheckStrictly() != null && role.getMenuCheckStrictly();
+        return menuMapper.selectMenuListByRoleId(roleId, menuCheckStrictly);
     }
 
     @Override
@@ -155,7 +159,7 @@ public class SysMenuServiceImpl extends ServiceImpl<SysMenuMapper, SysMenu> impl
                 RouterVo children = new RouterVo();
                 children.setPath(menu.getPath());
                 children.setComponent(menu.getComponent());
-                children.setName(StrUtil.upperFirst(menu.getPath()));
+                children.setName(StrUtil.upperFirst(menu.getPath()) + menu.getMenuId());
                 children.setMeta(new MetaVo(menu.getMenuName(), menu.getIcon(), "1".equals(menu.getIsCache()), menu.getPath()));
                 children.setQuery(menu.getQueryParam());
                 childrenList.add(children);
@@ -168,7 +172,7 @@ public class SysMenuServiceImpl extends ServiceImpl<SysMenuMapper, SysMenu> impl
                 String routerPath = innerLinkReplaceEach(menu.getPath());
                 children.setPath(routerPath);
                 children.setComponent(Constants.INNER_LINK);
-                children.setName(StrUtil.upperFirst(routerPath));
+                children.setName(StrUtil.upperFirst(routerPath) + menu.getMenuId());
                 children.setMeta(new MetaVo(menu.getMenuName(), menu.getIcon(), menu.getPath()));
                 childrenList.add(children);
                 router.setChildren(childrenList);
@@ -250,11 +254,10 @@ public class SysMenuServiceImpl extends ServiceImpl<SysMenuMapper, SysMenu> impl
      * 获取路由名称
      */
     private String getRouteName(SysMenu menu) {
-        String routerName = StrUtil.upperFirst(menu.getPath());
         if (isMenuFrame(menu)) {
-            routerName = StrUtil.EMPTY;
+            return StrUtil.EMPTY;
         }
-        return routerName;
+        return StrUtil.upperFirst(menu.getPath()) + menu.getMenuId();
     }
 
     /**

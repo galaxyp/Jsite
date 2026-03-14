@@ -9,8 +9,17 @@
   >
     <template v-for="menu in menuList" :key="menu.path">
       <template v-if="!menu.hidden && !menu.meta?.hidden">
-        <!-- 有子菜单 -->
-        <a-sub-menu v-if="menu.children && menu.children.length > 0" :key="menu.path">
+        <!-- 只有一个子菜单：直接显示子菜单 -->
+        <template v-if="menu.children && menu.children.length === 1 && !menu.children[0].meta?.hidden">
+          <a-menu-item :key="getFullPath(menu.path, menu.children[0].path)">
+            <template #icon>
+              <component :is="getIcon(menu.children[0].meta?.icon || menu.meta?.icon)" />
+            </template>
+            {{ menu.children[0].meta?.title || menu.meta?.title }}
+          </a-menu-item>
+        </template>
+        <!-- 有多个子菜单：显示子菜单组 -->
+        <a-sub-menu v-else-if="menu.children && menu.children.length > 1" :key="menu.path">
           <template #icon>
             <component :is="getIcon(menu.meta?.icon)" />
           </template>
@@ -24,7 +33,7 @@
             </a-menu-item>
           </template>
         </a-sub-menu>
-        <!-- 无子菜单 -->
+        <!-- 无子菜单：直接显示 -->
         <a-menu-item v-else :key="menu.path">
           <template #icon>
             <component :is="getIcon(menu.meta?.icon)" />
@@ -72,6 +81,10 @@ const getFullPath = (parentPath: string, childPath: string) => {
   if (childPath.startsWith('/')) {
     return childPath
   }
+  // 处理父路径是 '/' 的情况，避免双斜杠
+  if (parentPath === '/') {
+    return '/' + childPath
+  }
   return `${parentPath}/${childPath}`
 }
 
@@ -101,7 +114,12 @@ watch(
 
 // 菜单点击
 const handleMenuClick = ({ key }: { key: string }) => {
-  router.push(key)
+  console.log('🔗 Menu clicked, navigating to:', key)
+  router.push(key).then(() => {
+    console.log('✅ Navigation success, current route:', route.path)
+  }).catch(err => {
+    console.error('❌ Navigation failed:', err)
+  })
 }
 </script>
 

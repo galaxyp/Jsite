@@ -61,31 +61,49 @@ router.beforeEach(async (to, from, next) => {
   const userStore = useUserStore()
   const permissionStore = usePermissionStore()
 
+  // 根路径 / 不渲染布局，直接重定向到登录或首页，避免空白
+  if (to.path === '/') {
+    if (userStore.token) {
+      next('/dashboard')
+    } else {
+      next('/login?redirect=/')
+    }
+    NProgress.done()
+    return
+  }
+
   // 设置页面标题
   document.title = to.meta.title ? `${to.meta.title} - JSite` : 'JSite'
 
   // 判断是否已登录
   if (userStore.token) {
     if (to.path === '/login') {
-      next({ path: '/' })
+      // 已登录且访问登录页：直接显示登录页，不重定向，避免因 getInfo 卡住而一直加载
+      next()
       NProgress.done()
+      return
     } else {
       // 判断是否已获取用户信息
       if (userStore.roles.length === 0) {
         try {
-          // 获取用户信息
-          await userStore.getInfo()
+          // 获取用户信息（8 秒超时，避免后端无响应时一直白屏）
+          const timeout = (ms: number) =>
+            new Promise<never>((_, reject) => setTimeout(() => reject(new Error('timeout')), ms))
+          await Promise.race([userStore.getInfo(), timeout(8000)])
           // 生成动态路由
           const accessRoutes = await permissionStore.generateRoutes()
           // 添加动态路由
           accessRoutes.forEach((route) => {
-            router.addRoute(route)
+            try {
+              router.addRoute(route)
+            } catch (e) {
+              console.error('[路由] 动态路由注册失败:', route.path, e)
+            }
           })
-          // 添加404路由
-          router.addRoute({ path: '/:pathMatch(.*)*', redirect: '/404' })
+          // 注意：不再添加 catch-all 404 路由，避免拦截静态路由
           next({ ...to, replace: true })
         } catch (error) {
-          // 清除Token并跳转登录页
+          // 超时或失败：清除 Token 并跳转登录页
           await userStore.logout()
           next(`/login?redirect=${to.path}`)
           NProgress.done()

@@ -80,7 +80,7 @@ public class SysUserServiceImpl extends ServiceImpl<SysUserMapper, SysUser> impl
     @Override
     public boolean checkUserNameUnique(SysUser user) {
         Long userId = ObjectUtil.isNull(user.getUserId()) ? -1L : user.getUserId();
-        SysUser info = userMapper.checkUserNameUnique(user.getUserName());
+        SysUser info = userMapper.checkUserNameUnique(user.getLoginName());
         if (ObjectUtil.isNotNull(info) && info.getUserId().longValue() != userId.longValue()) {
             return false;
         }

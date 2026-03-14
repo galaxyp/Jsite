@@ -22,10 +22,10 @@
         <!-- 搜索表单 -->
         <a-card size="small" :bordered="false">
           <a-form layout="inline" :model="queryParams">
-            <a-form-item label="用户名称">
+            <a-form-item label="登录账号">
               <a-input
-                v-model:value="queryParams.userName"
-                placeholder="请输入用户名称"
+                v-model:value="queryParams.loginName"
+                placeholder="请输入登录账号"
                 allow-clear
                 @keyup.enter="handleQuery"
               />
@@ -106,9 +106,8 @@
                   <a-popconfirm
                     title="确定删除该用户吗？"
                     @confirm="handleDelete(record)"
-                    v-permission="['system:user:remove']"
                   >
-                    <a class="danger">删除</a>
+                    <a class="danger" v-permission="['system:user:remove']">删除</a>
                   </a-popconfirm>
                 </a-space>
               </template>
@@ -135,8 +134,8 @@
       >
         <a-row :gutter="16">
           <a-col :span="12">
-            <a-form-item label="用户昵称" name="nickName">
-              <a-input v-model:value="form.nickName" placeholder="请输入用户昵称" />
+            <a-form-item label="用户昵称" name="userName">
+              <a-input v-model:value="form.userName" placeholder="请输入用户昵称" />
             </a-form-item>
           </a-col>
           <a-col :span="12">
@@ -160,8 +159,8 @@
             </a-form-item>
           </a-col>
           <a-col :span="12" v-if="form.userId === undefined">
-            <a-form-item label="用户名称" name="userName">
-              <a-input v-model:value="form.userName" placeholder="请输入用户名称" />
+            <a-form-item label="登录账号" name="loginName">
+              <a-input v-model:value="form.loginName" placeholder="请输入登录账号" />
             </a-form-item>
           </a-col>
           <a-col :span="12" v-if="form.userId === undefined">
@@ -248,7 +247,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, reactive, onMounted } from 'vue'
+import { ref, reactive, onMounted, onActivated } from 'vue'
 import { message } from 'ant-design-vue'
 import {
   SearchOutlined,
@@ -282,7 +281,7 @@ const formRef = ref()
 const queryParams = reactive({
   pageNum: 1,
   pageSize: 10,
-  userName: undefined,
+  loginName: undefined,
   phonenumber: undefined,
   status: undefined,
   deptId: undefined,
@@ -300,8 +299,8 @@ const pagination = reactive({
 const form = reactive<any>({
   userId: undefined,
   deptId: undefined,
+  loginName: undefined,
   userName: undefined,
-  nickName: undefined,
   password: undefined,
   phonenumber: undefined,
   email: undefined,
@@ -319,8 +318,8 @@ const resetPwdForm = reactive({
 })
 
 const rules = {
-  userName: [{ required: true, message: '用户名称不能为空', trigger: 'blur' }],
-  nickName: [{ required: true, message: '用户昵称不能为空', trigger: 'blur' }],
+  loginName: [{ required: true, message: '登录账号不能为空', trigger: 'blur' }],
+  userName: [{ required: true, message: '用户昵称不能为空', trigger: 'blur' }],
   password: [{ required: true, message: '用户密码不能为空', trigger: 'blur' }],
   email: [{ type: 'email', message: '请输入正确的邮箱地址', trigger: 'blur' }],
   phonenumber: [{ pattern: /^1[3-9]\d{9}$/, message: '请输入正确的手机号码', trigger: 'blur' }],
@@ -328,8 +327,8 @@ const rules = {
 
 const columns = [
   { title: '用户编号', dataIndex: 'userId', width: 100 },
-  { title: '用户名称', dataIndex: 'userName', width: 120 },
-  { title: '用户昵称', dataIndex: 'nickName', width: 120 },
+  { title: '登录账号', dataIndex: 'loginName', width: 120 },
+  { title: '用户昵称', dataIndex: 'userName', width: 120 },
   { title: '部门', dataIndex: ['dept', 'deptName'], width: 120 },
   { title: '手机号码', dataIndex: 'phonenumber', width: 120 },
   { title: '状态', dataIndex: 'status', width: 100 },
@@ -342,8 +341,8 @@ const getList = async () => {
   loading.value = true
   try {
     const res = await listUser(queryParams)
-    userList.value = res.data.rows
-    pagination.total = res.data.total
+    userList.value = res.rows
+    pagination.total = res.total
   } finally {
     loading.value = false
   }
@@ -379,7 +378,7 @@ const handleQuery = () => {
 
 // 重置
 const resetQuery = () => {
-  queryParams.userName = undefined
+  queryParams.loginName = undefined
   queryParams.phonenumber = undefined
   queryParams.status = undefined
   queryParams.deptId = undefined
@@ -416,8 +415,8 @@ const cancel = () => {
 const reset = () => {
   form.userId = undefined
   form.deptId = undefined
+  form.loginName = undefined
   form.userName = undefined
-  form.nickName = undefined
   form.password = undefined
   form.phonenumber = undefined
   form.email = undefined
@@ -503,6 +502,10 @@ const submitResetPwd = async () => {
 onMounted(() => {
   getList()
   getDeptTree()
+})
+
+onActivated(() => {
+  getList()
 })
 </script>
 

@@ -1,7 +1,7 @@
-import request from '@/utils/request'
+import request from '@/utils/http'
 
 /**
- * 获取服务器信息
+ * 获取服务器信�?
  */
 export function getServer() {
   return request({

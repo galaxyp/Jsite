@@ -1,65 +1,61 @@
 package com.jsite.framework.security;
 
 import cn.dev33.satoken.stp.StpInterface;
-import cn.dev33.satoken.stp.StpUtil;
 import com.jsite.common.constant.Constants;
-import com.jsite.modules.system.entity.SysUser;
+import com.jsite.system.service.ISysMenuService;
+import com.jsite.system.service.ISysRoleService;
+import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Set;
 
 /**
  * Sa-Token 权限认证接口实现
- *
- * @author jsite
+ * 直接通过 userId 查询数据库，避免 Session 类型不匹配等问题
  */
 @Component
+@RequiredArgsConstructor
 public class StpInterfaceImpl implements StpInterface {
+
+    private final ISysMenuService menuService;
+    private final ISysRoleService roleService;
 
     /**
      * 获取用户权限列表
+     * 管理员(userId=1) 返回 Sa-Token 识别的全局通配符 "*"，其他用户从菜单权限表查询
      */
     @Override
     public List<String> getPermissionList(Object loginId, String loginType) {
-        List<String> permissions = new ArrayList<>();
         try {
-            SysUser user = (SysUser) StpUtil.getSession().get("user");
-            if (user != null) {
-                // 管理员拥有所有权限
-                if (Constants.SUPER_ADMIN_ID.equals(user.getId())) {
-                    permissions.add(Constants.ALL_PERMISSION);
-                } else {
-                    // 获取用户权限列表
-                    permissions = user.getPermissions();
-                }
+            Long userId = Long.parseLong(loginId.toString());
+            if (Constants.SUPER_ADMIN_ID.equals(userId)) {
+                // Sa-Token 的全通配符是 "*"，不是 "*:*:*"
+                return List.of("*");
             }
+            Set<String> perms = menuService.selectMenuPermsByUserId(userId);
+            return new ArrayList<>(perms);
         } catch (Exception e) {
-            // 忽略异常
+            return new ArrayList<>();
         }
-        return permissions;
     }
 
     /**
      * 获取用户角色列表
+     * 管理员(userId=1) 返回 admin，其他用户从角色表查询
      */
     @Override
     public List<String> getRoleList(Object loginId, String loginType) {
-        List<String> roles = new ArrayList<>();
         try {
-            SysUser user = (SysUser) StpUtil.getSession().get("user");
-            if (user != null) {
-                // 管理员拥有所有角色
-                if (Constants.SUPER_ADMIN_ID.equals(user.getId())) {
-                    roles.add(Constants.SUPER_ADMIN_ROLE_KEY);
-                } else {
-                    // 获取用户角色列表
-                    roles = user.getRoles();
-                }
+            Long userId = Long.parseLong(loginId.toString());
+            if (Constants.SUPER_ADMIN_ID.equals(userId)) {
+                return List.of(Constants.SUPER_ADMIN_ROLE_KEY);
             }
+            Set<String> roles = roleService.selectRolePermissionByUserId(userId);
+            return new ArrayList<>(roles);
         } catch (Exception e) {
-            // 忽略异常
+            return new ArrayList<>();
         }
-        return roles;
     }
 }

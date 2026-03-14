@@ -21,6 +21,12 @@ public class GenTable extends BaseEntity {
     private static final long serialVersionUID = 1L;
 
     /**
+     * 排除父类的 delFlag 字段（gen_table 表没有此字段）
+     */
+    @TableField(exist = false)
+    private String delFlag;
+
+    /**
      * 编号
      */
     @TableId(type = IdType.AUTO)

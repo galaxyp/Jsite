@@ -87,9 +87,8 @@
               <a-popconfirm
                 title="确定删除该角色吗？"
                 @confirm="handleDelete(record)"
-                v-permission="['system:role:remove']"
               >
-                <a class="danger">删除</a>
+                <a class="danger" v-permission="['system:role:remove']">删除</a>
               </a-popconfirm>
             </a-space>
           </template>
@@ -145,7 +144,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, reactive, onMounted } from 'vue'
+import { ref, reactive, onMounted, onActivated } from 'vue'
 import { message } from 'ant-design-vue'
 import {
   SearchOutlined,
@@ -212,8 +211,8 @@ const getList = async () => {
   loading.value = true
   try {
     const res = await listRole(queryParams)
-    roleList.value = res.data.rows
-    pagination.total = res.data.total
+    roleList.value = res.rows
+    pagination.total = res.total
   } finally {
     loading.value = false
   }
@@ -335,6 +334,10 @@ const handleStatusChange = async (row: any, checked: boolean) => {
 }
 
 onMounted(() => {
+  getList()
+})
+
+onActivated(() => {
   getList()
 })
 </script>

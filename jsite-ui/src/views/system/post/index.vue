@@ -40,8 +40,8 @@
           <template v-if="column.dataIndex === 'action'">
             <a-space>
               <a @click="handleUpdate(record)" v-permission="['system:post:edit']">编辑</a>
-              <a-popconfirm title="确定删除该岗位吗？" @confirm="handleDelete(record)" v-permission="['system:post:remove']">
-                <a class="danger">删除</a>
+              <a-popconfirm title="确定删除该岗位吗？" @confirm="handleDelete(record)">
+                <a class="danger" v-permission="['system:post:remove']">删除</a>
               </a-popconfirm>
             </a-space>
           </template>
@@ -105,8 +105,8 @@ const getList = async () => {
   loading.value = true
   try {
     const res = await listPost(queryParams)
-    postList.value = res.data.rows
-    pagination.total = res.data.total
+    postList.value = res.rows
+    pagination.total = res.total
   } finally {
     loading.value = false
   }

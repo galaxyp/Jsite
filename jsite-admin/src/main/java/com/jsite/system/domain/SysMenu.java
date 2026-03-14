@@ -20,9 +20,15 @@ import java.util.List;
 public class SysMenu extends TreeEntity<SysMenu> {
 
     /**
+     * 表中无此列，避免继承 BaseEntity 的 @TableLogic 参与 sys_menu 的 UPDATE/DELETE
+     */
+    @TableField(exist = false)
+    private String delFlag;
+
+    /**
      * 菜单ID
      */
-    @TableId(type = IdType.AUTO)
+    @TableId(value = "id", type = IdType.AUTO)
     private Long menuId;
 
     /**

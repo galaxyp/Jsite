@@ -37,16 +37,16 @@ class SysUserServiceTest {
 
     @Test
     void testCheckUserNameUnique() {
-        // 测试用户名唯一性检查
+        // checkUserNameUnique 返回 true 表示"登录名可用（唯一）"，false 表示"已被占用（不唯一）"
+        // 场景1：已存在的登录名 admin，不传 userId（视为新增），应返回 false（已被占用）
         SysUser user = new SysUser();
         user.setLoginName("admin");
-        boolean exists = userService.checkUserNameUnique(user);
-        assertTrue(exists);
+        assertFalse(userService.checkUserNameUnique(user), "已存在的登录名应不唯一");
 
+        // 场景2：不存在的登录名，应返回 true（可用）
         SysUser user2 = new SysUser();
         user2.setLoginName("nonexistent_user_12345");
-        boolean notExists = userService.checkUserNameUnique(user2);
-        assertFalse(notExists);
+        assertTrue(userService.checkUserNameUnique(user2), "不存在的登录名应唯一");
     }
 
     @Test

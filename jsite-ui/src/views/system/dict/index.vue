@@ -44,8 +44,8 @@
           <template v-if="column.dataIndex === 'action'">
             <a-space>
               <a @click="handleUpdate(record)" v-permission="['system:dict:edit']">编辑</a>
-              <a-popconfirm title="确定删除该字典类型吗？" @confirm="handleDelete(record)" v-permission="['system:dict:remove']">
-                <a class="danger">删除</a>
+              <a-popconfirm title="确定删除该字典类型吗？" @confirm="handleDelete(record)">
+                <a class="danger" v-permission="['system:dict:remove']">删除</a>
               </a-popconfirm>
             </a-space>
           </template>
@@ -108,8 +108,8 @@ const getList = async () => {
   loading.value = true
   try {
     const res = await listType(queryParams)
-    dictList.value = res.data.rows
-    pagination.total = res.data.total
+    dictList.value = res.rows
+    pagination.total = res.total
   } finally {
     loading.value = false
   }

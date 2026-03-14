@@ -20,7 +20,7 @@ public class SysOperLog implements Serializable {
     /**
      * 日志主键
      */
-    @TableId(type = IdType.AUTO)
+    @TableId(value = "id", type = IdType.AUTO)
     private Long operId;
 
     /**
